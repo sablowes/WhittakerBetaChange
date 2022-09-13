@@ -48,9 +48,11 @@ raw_new <- bt_filtered_2timeOnly %>%
   unite(ObsEventID, c(STUDY_ID, loc_plot, YEAR), remove = F) %>%
   group_by(STUDY_ID, loc_plot, YEAR) %>% 
   mutate(sample_effort = n_distinct(ObsEventID)) %>% 
-  select(STUDY_ID, loc_plot, YEAR, sample_effort, GENUS_SPECIES) %>% 
+  # rename abundance column
+  rename(N = sum.allrawdata.ABUNDANCE) %>% 
+  select(STUDY_ID, loc_plot, YEAR, sample_effort, GENUS_SPECIES, N) %>% 
   group_by(STUDY_ID, loc_plot, YEAR, sample_effort) %>% 
-  nest(data = c(GENUS_SPECIES)) %>% 
+  nest(data = c(GENUS_SPECIES, N)) %>% 
   ungroup() %>% 
   group_by(STUDY_ID, loc_plot) %>% 
   mutate(fYear = ifelse(YEAR==min(YEAR), 'start', 'end')) %>% 
@@ -62,12 +64,17 @@ raw_new %>%
   filter(sample_effort[fYear=='start'] != sample_effort[fYear=='end']) 
 
 local_S <- raw_new %>% 
-  mutate(S = map(data, ~n_distinct(.x$GENUS_SPECIES)))
+  mutate(S = map(data, ~n_distinct(.x$GENUS_SPECIES)),
+         S_PIE = map(data, ~vegan::diversity(.x$N, index = 'invsimpson')))
 
 regional_S <- raw_new %>% 
   unnest(data) %>% 
+  group_by(STUDY_ID, fYear, GENUS_SPECIES) %>% 
+  summarise(N = sum(N)) %>% 
+  ungroup() %>% 
   group_by(STUDY_ID, fYear) %>% 
-  summarise(S = n_distinct(GENUS_SPECIES)) %>% 
+  summarise(S = n_distinct(GENUS_SPECIES),
+            S_PIE = vegan::diversity(N, index = 'invsimpson')) %>% 
   ungroup() %>% 
   # put the YEAR back in for start and finish time points
   left_join(local_S %>% 
@@ -76,11 +83,24 @@ regional_S <- raw_new %>%
 # visual sanity check
 left_join(local_S %>% 
             unnest(S) %>% 
+            select(-S_PIE) %>% 
             rename(local_S = S),
           regional_S %>% 
+            select(-S_PIE) %>% 
             rename(regional_S = S)) %>% #filter(local_S > regional_S)
   ggplot() +
   geom_point(aes(x = local_S, y = regional_S)) +
+  geom_abline(intercept = 0, slope = 1, lty = 2)
+
+left_join(local_S %>% 
+            unnest(S_PIE) %>% 
+            select(-S) %>% 
+            rename(local_S_PIE = S_PIE),
+          regional_S %>% 
+            select(-S) %>% 
+            rename(regional_S_PIE = S_PIE)) %>% #filter(local_S > regional_S)
+  ggplot() +
+  geom_point(aes(x = local_S_PIE, y = regional_S_PIE)) +
   geom_abline(intercept = 0, slope = 1, lty = 2)
 
 # also want to jackknife resample for regional-scale analysis
@@ -107,20 +127,28 @@ for(i in 1:length(unique(prep$STUDY_ID))){
   # initial temporary storage for each study
   study_jknife = NULL
   for(j in 1:unique(study_start$n_loc_plots)){
-    # drop on row and calculate regional richness
+    # drop on row and calculate regional richness and S_PIE
     start_temp = study_start %>% 
       slice(-j) %>% 
       unnest(data) %>% 
+      group_by(STUDY_ID, fYear, GENUS_SPECIES) %>% 
+      summarise(N = sum(N)) %>% 
+      ungroup() %>% 
       group_by(STUDY_ID, fYear) %>% 
-      summarise(S_jk = n_distinct(GENUS_SPECIES)) %>% 
+      summarise(S_jk = n_distinct(GENUS_SPECIES),
+                S_PIE_jk = vegan::diversity(N, index = 'invsimpson')) %>% 
       ungroup() %>% 
       mutate(jacknife = j)
     
     end_temp = study_end %>% 
       slice(-j) %>% 
       unnest(data) %>% 
+      group_by(STUDY_ID, fYear, GENUS_SPECIES) %>% 
+      summarise(N = sum(N)) %>% 
+      ungroup() %>% 
       group_by(STUDY_ID, fYear) %>% 
-      summarise(S_jk = n_distinct(GENUS_SPECIES)) %>% 
+      summarise(S_jk = n_distinct(GENUS_SPECIES),
+                S_PIE_jk = vegan::diversity(N, index = 'invsimpson')) %>% 
       ungroup() %>% 
       mutate(jacknife = j)
     
@@ -139,27 +167,33 @@ for(i in 1:length(unique(prep$STUDY_ID))){
 left_join(regional_S,
           regional_jknife %>% 
             group_by(STUDY_ID, fYear) %>% 
-            summarise(S_jk_mu = mean(S_jk))) %>% #filter(S_jk_mu > S)
+            summarise(S_jk_mu = mean(S_jk),
+                      S_PIE_jk_mu = mean(S_PIE_jk))) %>% #filter(S_jk_mu > S)
   ggplot() +
   geom_point(aes(x = S_jk_mu, y = S)) +
+  geom_point(aes(x = S_PIE_jk_mu, y = S_PIE), colour='red') +
   geom_abline(intercept = 0, slope = 1, lty = 2)
 
 # calculate local LR
 bt_local_LR <- left_join(local_S %>%
-                           unnest(S) %>% 
+                           unnest(c(S, S_PIE)) %>% 
                            filter(fYear=='start') %>% 
                            rename(S_historical = S,
+                                  S_PIE_historical = S_PIE,
                                   t1 = YEAR) %>% 
                            select(-fYear, -sample_effort, -data),
                          local_S %>%
-                           unnest(S) %>% 
+                           unnest(c(S, S_PIE)) %>% 
                            filter(fYear=='end') %>% 
                            rename(S_modern = S,
+                                  S_PIE_modern = S_PIE,
                                   t2 = YEAR) %>% 
                            select(-fYear, -sample_effort, -data)) %>% 
   mutate(alpha_LR = log(S_modern/S_historical),
+         alpha_LR_S_PIE = log(S_PIE_modern/S_PIE_historical),
          deltaT = t2 - t1 + 1,
-         ES = alpha_LR / deltaT)
+         ES = alpha_LR / deltaT,
+         ES_S_PIE = alpha_LR_S_PIE / deltaT)
 
 
 bt_local_mean_LR <- bt_local_LR %>% 
@@ -168,22 +202,27 @@ bt_local_mean_LR <- bt_local_LR %>%
             check = mean(log(S_modern/S_historical)),
             alpha_LR_sd = sd(alpha_LR),
             ES_mu = mean(ES),
+            ES_S_PIE_mu = mean(ES_S_PIE),
             ES_se = sd(ES)/(sqrt(n_distinct(loc_plot)))) %>% 
   ungroup()
 
 bt_regional_LR <- left_join(regional_S %>% 
                               filter(fYear=='start') %>% 
-                              rename(S_historical = S, 
+                              rename(S_historical = S,
+                                     S_PIE_historical = S_PIE,
                                      t1 = YEAR) %>% 
                               select(-fYear),
                             regional_S %>% 
                               filter(fYear=='end') %>% 
                               rename(S_modern = S,
+                                     S_PIE_modern = S_PIE,
                                      t2 = YEAR) %>% 
                               select(-fYear)) %>% 
   mutate(gamma_LR = log(S_modern/S_historical),
+         gamma_LR_S_PIE = log(S_PIE_modern / S_PIE_historical),
          deltaT = t2 - t1 + 1,
-         ES = gamma_LR / deltaT)
+         ES = gamma_LR / deltaT,
+         ES_S_PIE = gamma_LR_S_PIE / deltaT)
 
 # calculate jacknife regional LR
 # first put Year back in for effect size calculation
@@ -193,17 +232,21 @@ bt_regional_jknife <- left_join(regional_jknife,
 
 bt_regional_jknife_LR <- left_join(bt_regional_jknife %>% 
                                   filter(fYear=='start') %>% 
-                                  rename(S_historical = S_jk, 
-                                         t1 = YEAR) %>% 
+                                    rename(S_historical = S_jk,
+                                           S_PIE_historical = S_PIE_jk,
+                                           t1 = YEAR) %>% 
                                   select(-fYear),
                                   bt_regional_jknife %>% 
                                   filter(fYear=='end') %>% 
                                   rename(S_modern = S_jk,
+                                         S_PIE_modern = S_PIE_jk,
                                          t2 = YEAR) %>% 
                                   select(-fYear)) %>% 
   mutate(gamma_LR = log(S_modern/S_historical),
+         gamma_LR_S_PIE = log(S_PIE_modern / S_PIE_historical),
          deltaT = t2 - t1 + 1,
-         ES = gamma_LR / deltaT)
+         ES = gamma_LR / deltaT,
+         ES_S_PIE = gamma_LR_S_PIE / deltaT)
 
 ggplot() +
   geom_point(data = left_join(bt_local_mean_LR, 
@@ -222,6 +265,13 @@ ggplot() +
   geom_hline(yintercept = 0, lty = 2) +
   geom_vline(xintercept = 0, lty = 2)
 
+ggplot() +
+  geom_point(data = left_join(bt_local_mean_LR, 
+                              bt_regional_LR),
+             aes(x = ES_S_PIE_mu, y = ES_S_PIE)) +
+  geom_abline(intercept = 0, slope = 1, lty = 2) +
+  geom_hline(yintercept = 0, lty = 2) +
+  geom_vline(xintercept = 0, lty = 2)
 
 ggplot() +
   geom_point(data = left_join(bt_regional_jknife_LR %>% 

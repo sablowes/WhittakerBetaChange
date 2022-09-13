@@ -106,9 +106,11 @@ for(s in 1:length(sites)){
 # calculate local and regional richness for the resamples
 localS <- all_resamps %>% 
   group_by(site_loc, year, resamp) %>% 
-  summarise(S = n_distinct(FIELDNAME)) %>% 
+  summarise(S = n_distinct(FIELDNAME),
+            S_PIE = vegan::diversity(N, index = 'invsimpson')) %>% 
   group_by(site_loc, year) %>% 
-  summarise(Sbar = median(S)) %>% 
+  summarise(Sbar = median(S),
+            S_PIEbar = median(S_PIE)) %>% 
   ungroup()
 
 regionalS_allresamps <- all_resamps %>% 
@@ -117,12 +119,14 @@ regionalS_allresamps <- all_resamps %>%
   summarise(N = sum(N)) %>% 
   # calculate regional richness for each resample; retain the resamples to use in conjunction with jack-knife resamps
   group_by(year, resamp) %>% 
-  summarise(S = n_distinct(FIELDNAME)) %>% 
+  summarise(S = n_distinct(FIELDNAME),
+            S_PIE = vegan::diversity(N, index = 'invsimpson')) %>% 
   ungroup()
 
 regionalS <- regionalS_allresamps %>% 
   group_by(year) %>% 
-  summarise(S = median(S))
+  summarise(S = median(S),
+            S_PIE = median(S_PIE))
 
 # rename all_resamps, we need these to calculate regional estimate for multiyr analysis
 enc_butterflies_resamps <- all_resamps %>% 

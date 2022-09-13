@@ -9,7 +9,8 @@ ft_filtered
 # calculate local richness 
 local_richness <- ft_filtered %>% 
   group_by(SourceID, TimeSeriesID, Year) %>% 
-  summarise(S = n_distinct(Species)) %>% 
+  summarise(S = n_distinct(Species),
+            S_PIE = vegan::diversity(Abundance, index = 'invsimpson')) %>% 
   ungroup() %>% 
   # find median year, add indicator for period
   group_by(SourceID) %>% 
@@ -81,7 +82,7 @@ multiyr_dat1 <- local_richness %>%
               select(SourceID, TimeSeriesID, Year, period, target_n_yrs)) %>% 
   select(-n_yrs, -med_yr) %>% 
   group_by(SourceID, TimeSeriesID, Year, period) %>% 
-  nest(data = c(S)) %>% 
+  nest(data = c(S, S_PIE)) %>% 
   group_by(SourceID, TimeSeriesID) %>% 
   arrange(-desc(Year), .by_group = TRUE) %>% 
   filter(row_number() <= target_n_yrs) %>% 
@@ -101,7 +102,7 @@ multiyr_dat2 <- local_richness %>%
               select(SourceID, TimeSeriesID, Year, period, target_n_yrs)) %>% 
   select(-n_yrs, -med_yr) %>% 
   group_by(SourceID, TimeSeriesID, Year, period) %>% 
-  nest(data = c(S)) %>% 
+  nest(data = c(S, S_PIE)) %>% 
   group_by(SourceID, TimeSeriesID) %>% 
   arrange(desc(Year), .by_group = TRUE) %>% 
   filter(row_number() <= target_n_yrs) %>% 
@@ -173,7 +174,8 @@ rft_local_multiyr_S <- bind_rows(multiyr_dat1,
                          multiyr_dat2) %>% 
   unnest(data) %>% 
   group_by(SourceID, TimeSeriesID, period) %>% 
-  summarise(S = mean(S)) %>% 
+  summarise(S = mean(S),
+            S_PIE = mean(S_PIE)) %>% 
   ungroup()
 
 # want the standardised data for these regions and locations to estimate regional richness
@@ -190,8 +192,8 @@ prep_regional <- ft_filtered %>%
   unite(reg_loc_yr, c(SourceID, TimeSeriesID, Year)) %>% 
   filter(reg_loc_yr %in% reg_loc$reg_loc_yr) %>% 
   left_join(reg_loc) %>% 
-  select(SourceID, TimeSeriesID, Year, yr_i, period, Species) %>% 
-  nest(data = c(Species)) %>% 
+  select(SourceID, TimeSeriesID, Year, yr_i, period, Species, Abundance) %>% 
+  nest(data = c(Species, Abundance)) %>% 
   group_by(SourceID, Year, yr_i, period) %>% 
   mutate(n_locations = n_distinct(TimeSeriesID)) %>% 
   ungroup() %>% 
@@ -243,16 +245,22 @@ for(r in 1:length(unique(prep_regional$SourceID))){
       start_temp = p1_yr_i_allplots %>% 
         slice(-n) %>% 
         unnest(data) %>% 
+        group_by(SourceID, Year, yr_i, period, Species) %>% 
+        summarise(N = sum(Abundance)) %>% 
         group_by(SourceID, Year, yr_i, period) %>% 
-        summarise(S_jk = n_distinct(Species)) %>% 
+        summarise(S_jk = n_distinct(Species),
+                  S_PIE_jk = vegan::diversity(N, index = 'invsimpson')) %>% 
         ungroup() %>% 
         mutate(jacknife = n)
       
       end_temp = p2_yr_i_allplots %>%
         slice(-n) %>% 
         unnest(data) %>% 
+        group_by(SourceID, Year, yr_i, period, Species) %>% 
+        summarise(N = sum(Abundance)) %>% 
         group_by(SourceID, Year, yr_i, period) %>% 
-        summarise(S_jk = n_distinct(Species)) %>% 
+        summarise(S_jk = n_distinct(Species),
+                  S_PIE_jk = vegan::diversity(N, index = 'invsimpson')) %>% 
         ungroup() %>% 
         mutate(jacknife = n)
       
@@ -273,7 +281,8 @@ for(r in 1:length(unique(prep_regional$SourceID))){
 # now average richness over the years in each period (for each jackknife resample)
 rft_regional_jknife <- regional_jknife_allyrs %>% 
   group_by(SourceID, period, jacknife) %>% 
-  summarise(S = median(S_jk)) %>% 
+  summarise(S = median(S_jk),
+            S_PIE = median(S_PIE_jk)) %>% 
   ungroup()
 
 # join data with first-last samples only to multiyr dat, 
@@ -285,29 +294,38 @@ rft_local_S_multiyr <- bind_rows(fl_only_alpha_S %>%
 
 rft_local_LR_multiyr <- left_join(rft_local_S_multiyr %>% 
                                     filter(period=='first') %>% 
-                                    rename(S_historical = S) %>% 
+                                    rename(S_historical = S,
+                                           S_PIE_historical = S_PIE) %>% 
                                     select(-period),
                                   rft_local_S_multiyr %>% 
                                     filter(period=='second') %>% 
-                                    rename(S_modern = S) %>% 
+                                    rename(S_modern = S,
+                                           S_PIE_modern = S_PIE) %>% 
                                     select(-period)) %>% 
-  mutate(alpha_LR = log(S_modern / S_historical)) 
+  mutate(alpha_LR = log(S_modern / S_historical),
+         alpha_LR_S_PIE = log(S_PIE_modern / S_PIE_historical)) 
 
 rft_regional_jknife_LR_multiyr <- left_join(rft_regional_jknife %>% 
                                               filter(period == 'first') %>% 
-                                              rename(S_historical = S) %>% 
+                                              rename(S_historical = S,
+                                                     S_PIE_historical = S_PIE) %>% 
                                               select(-period),
                                             rft_regional_jknife %>% 
                                               filter(period == 'second') %>% 
-                                              rename(S_modern = S) %>% 
+                                              rename(S_modern = S,
+                                                     S_PIE_modern = S_PIE) %>% 
                                               select(-period)) %>% 
-  mutate(gamma_LR = log(S_modern / S_historical)) %>% 
+  mutate(gamma_LR = log(S_modern / S_historical),
+         gamma_LR_S_PIE = log(S_PIE_modern / S_PIE_historical)) %>% 
   left_join(rft_regional_LR %>% 
               distinct(SourceID, deltaT) %>% 
               rename(dt = deltaT)) %>% 
-  mutate(ES_gamma = gamma_LR / dt) %>% 
+  mutate(ES_gamma = gamma_LR / dt,
+         ES_gamma_S_PIE = gamma_LR_S_PIE / dt) %>% 
   bind_rows(fl_regional_jacknife_LR %>% 
-              select(-t1, -t2, -n_locations))
+              select(-t1, -t2, -n_locations) %>% 
+              rename(ES_gamma = ES,
+                     ES_gamma_S_PIE = ES_S_PIE))
 
 save(rft_local_LR_multiyr,
      rft_regional_jknife_LR_multiyr,

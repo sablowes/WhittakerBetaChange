@@ -5,7 +5,7 @@ options(warn = -1)
 
 library(tidyverse)
 
-florida <- readRDS('~/Dropbox/1current/spatial_composition_change/code/invertebrate_data/code_from_Roel/Vectorbase 2021/Florida 2021.rds') %>% 
+florida <- readRDS('~/Dropbox/1current/spatial_composition_change/data/Florida 2021.rds') %>% 
   as_tibble()
 
 # many locations
@@ -164,11 +164,8 @@ min_days <- count_days %>%
 florida_filtered <- florida_filtered %>% 
   mutate(min_days = 1)
 
-florida_filtered %>% 
-  distinct(Collection.protocols, Collection.duration..days., Developmental.stage, Sex)
-
-# want to combine min_days from months 6-9 for each plot / year combination
-local_resamps <- NULL
+# florida_filtered %>% 
+#   distinct(Collection.protocols, Collection.duration..days., Developmental.stage, Sex)
 
 florida_nest <- florida_filtered %>% 
   select(Locations, plot, date, year, month, Species, Specimens.collected, min_days) %>% 
@@ -179,6 +176,9 @@ florida_nest <- florida_filtered %>%
 # suppress summarise statement (so counter is visible)
 options(dplyr.summarise.inform = FALSE)
 regions = unique(florida_nest$Locations)
+
+# want to combine min_days from months 6-9 for each plot / year combination
+local_resamps <- NULL
 
 for(r in 1:n_distinct(florida_nest$Locations)){
   region = florida_nest %>% 
@@ -205,13 +205,13 @@ for(r in 1:n_distinct(florida_nest$Locations)){
         
         samp = plot_t %>% 
           group_by(month) %>% 
-          sample_n(as.numeric(min_days))
+          slice_sample(n = as.numeric(min_days$min_days[1]))
         
         # combine and calculate richness for year
         alpha_samp <- samp %>% 
           ungroup() %>% 
           unnest() %>% 
-          group_by(plot, year, Species) %>% 
+          group_by(Locations, plot, year, Species) %>% 
           summarise(N = sum(Specimens.collected)) %>% 
           ungroup() %>% 
           filter(N > 0) %>% 
@@ -226,19 +226,25 @@ for(r in 1:n_distinct(florida_nest$Locations)){
 
 alpha_S <- local_resamps %>% 
   group_by(Locations, plot, year, resample) %>% 
-  summarise(S_resamp = n_distinct(Species)) %>% 
+  summarise(S_resamp = n_distinct(Species),
+            S_PIE_resamp = vegan::diversity(N, index = 'invsimpson')) %>% 
   ungroup() %>% 
   group_by(Locations, plot, year) %>% 
-  summarise(S = median(S_resamp)) %>% 
+  summarise(S = median(S_resamp),
+            S_PIE = median(S_PIE_resamp)) %>% 
   ungroup() %>% 
-  rename(region = Locations)
+  rename(region = plot)
 
 gamma_S <- local_resamps %>% 
-  group_by(Locations, year, resample) %>% 
-  summarise(S_resamp = n_distinct(Species)) %>% 
+  group_by(Locations, year, resample, Species) %>% 
+  summarise(N = sum(N)) %>% 
+  group_by(Locations, resample, year) %>% 
+  summarise(S_resamp = n_distinct(Species),
+            S_PIE_resamp = vegan::diversity(N, index = 'invsimpson')) %>% 
   ungroup() %>% 
   group_by(Locations, year) %>% 
-  summarise(S = median(S_resamp)) %>% 
+  summarise(S = median(S_resamp),
+            S_PIE = median(S_PIE_resamp)) %>% 
   ungroup() %>% 
   rename(region = Locations)
 
@@ -273,11 +279,15 @@ for(r in 1:n_region){
       ungroup() %>% 
       slice(-j) %>% 
       unnest(data) %>% 
+      group_by(year, resample, Species) %>% 
+      summarise(N = sum(N)) %>% 
       group_by(year, resample) %>% 
-      summarise(S_resamp = n_distinct(Species)) %>% 
+      summarise(S_resamp = n_distinct(Species),
+                S_PIE_resamp = vegan::diversity(N, index = 'invsimpson')) %>% 
       ungroup() %>% 
       group_by(year) %>% 
-      summarise(S_jk = round(median(S_resamp))) %>% 
+      summarise(S_jk = round(median(S_resamp)),
+                S_PIE_jk = median(S_PIE_resamp)) %>% 
       ungroup() %>% 
       mutate(region = unique(region$Locations),
              jacknife = j)
@@ -287,12 +297,16 @@ for(r in 1:n_region){
       nest(data = c(year, Species, N, resample)) %>% 
       ungroup() %>% 
       slice(-j) %>% 
-      unnest(data) %>% 
+      unnest() %>% 
+      group_by(year, resample, Species) %>% 
+      summarise(N = sum(N)) %>% 
       group_by(year, resample) %>% 
-      summarise(S_resamp = n_distinct(Species)) %>% 
+      summarise(S_resamp = n_distinct(Species),
+                S_PIE_resamp = vegan::diversity(N, index = 'invsimpson')) %>% 
       ungroup() %>% 
       group_by(year) %>% 
-      summarise(S_jk = round(median(S_resamp))) %>% 
+      summarise(S_jk = round(median(S_resamp)),
+                S_PIE_jk = median(S_PIE_resamp)) %>% 
       ungroup() %>% 
       mutate(region = unique(region$Locations),
              jacknife = j)
@@ -314,7 +328,7 @@ study_jknife <- study_jknife %>%
                            year==2020 & region=='Manatee' ~ 'end'))
 
 save(local_resamps, alpha_S, gamma_S, study_jknife,
-     file = '~/Dropbox/1current/spatial_composition_change/code/invertebrate_data/clean_data/florida_clean.Rdata')
+     file = '~/Dropbox/1current/spatial_composition_change/data/florida_clean.Rdata')
 
 options(warn = defaultW)
 

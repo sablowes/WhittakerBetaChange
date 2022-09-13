@@ -9,7 +9,8 @@ ft_filtered
 # calculate local richness 
 local_richness <- ft_filtered %>% 
   group_by(SourceID, TimeSeriesID, Year) %>% 
-  summarise(S = n_distinct(Species)) %>% 
+  summarise(S = n_distinct(Species),
+            S_PIE = vegan::diversity(Abundance, index = 'invsimpson')) %>% 
   ungroup() %>% 
   # add indicator for calculating LRR
   group_by(SourceID, TimeSeriesID) %>% 
@@ -20,9 +21,12 @@ local_richness <- ft_filtered %>%
 
 # regional scale
 regional_richness <- ft_filtered %>% 
-  group_by(SourceID, Year) %>% 
-  summarise(S = n_distinct(Species)) %>% 
+  group_by(SourceID, Year, Species) %>% 
+  summarise(N = sum(Abundance)) %>% 
   ungroup() %>% 
+  group_by(SourceID, Year) %>% 
+  summarise(S = n_distinct(Species),
+            S_PIE = vegan::diversity(N, index = 'invsimpson')) %>% 
   # add indicator for calculating LRR
   group_by(SourceID) %>% 
   mutate(fYear = case_when(Year==min(Year) ~ 'start',
@@ -32,8 +36,8 @@ regional_richness <- ft_filtered %>%
 
 # regional scale jacknife
 prep_regional <- ft_filtered %>% 
-  select(SourceID, Year, TimeSeriesID, Species) %>% 
-  nest(data = c(Species)) %>% 
+  select(SourceID, Year, TimeSeriesID, Species, Abundance) %>% 
+  nest(data = c(Species, Abundance)) %>% 
   group_by(SourceID, Year) %>% 
   mutate(n_locations = n_distinct(TimeSeriesID)) %>% 
   ungroup() %>% 
@@ -65,16 +69,22 @@ for(i in 1:length(unique(prep_regional$SourceID))){
     start_temp = study_start %>% 
       slice(-j) %>% 
       unnest(data) %>% 
+      group_by(SourceID, Year, fYear, Species) %>% 
+      summarise(N = sum(Abundance)) %>% 
       group_by(SourceID, Year, fYear) %>% 
-      summarise(S_jk = n_distinct(Species)) %>% 
+      summarise(S_jk = n_distinct(Species),
+                S_PIE_jk = vegan::diversity(N, index = 'invsimpson')) %>% 
       ungroup() %>% 
       mutate(jacknife = j)
     
     end_temp = study_end %>% 
       slice(-j) %>% 
       unnest(data) %>% 
+      group_by(SourceID, Year, fYear, Species) %>% 
+      summarise(N = sum(Abundance)) %>% 
       group_by(SourceID, Year, fYear) %>% 
-      summarise(S_jk = n_distinct(Species)) %>% 
+      summarise(S_jk = n_distinct(Species),
+                S_PIE_jk = vegan::diversity(N, index = 'invsimpson')) %>% 
       ungroup() %>% 
       mutate(jacknife = j)
     
@@ -103,16 +113,20 @@ left_join(regional_richness,
 rft_local_LR <- left_join(local_richness %>%
                             filter(fYear=='start') %>% 
                             rename(S_historical = S,
+                                   S_PIE_historical = S_PIE,
                                    t1 = Year) %>% 
                             select(-fYear),
                           local_richness %>%
                             filter(fYear=='end') %>% 
                             rename(S_modern = S,
+                                   S_PIE_modern = S_PIE,
                                    t2 = Year) %>% 
                             select(-fYear)) %>% 
   mutate(alpha_LR = log(S_modern/S_historical),
+         alpha_LR_S_PIE = log(S_PIE_modern / S_PIE_historical),
          deltaT = t2 - t1 + 1,
-         ES = alpha_LR / deltaT) %>% 
+         ES = alpha_LR / deltaT,
+         ES_S_PIE = alpha_LR_S_PIE / deltaT) %>% 
   # check length (& remove, because short ones influence number of sites)
   filter(deltaT > 9) %>% 
   group_by(SourceID) %>% 
@@ -124,37 +138,46 @@ rft_local_mean_LR <- rft_local_LR %>%
   group_by(SourceID) %>% 
   summarise(LRR_mu = mean(alpha_LR), 
             ES_mu = mean(ES), 
+            ES_S_PIE_mu = mean(ES_S_PIE),
             n_sites = unique(n_sites))
 
 
 rft_regional_LR <- left_join(regional_richness %>%
                                filter(fYear=='start') %>% 
                                rename(S_historical = S,
+                                      S_PIE_historical = S_PIE,
                                       t1 = Year) %>% 
                                select(-fYear),
                              regional_richness %>%
                                filter(fYear=='end') %>% 
                                rename(S_modern = S, 
+                                      S_PIE_modern = S_PIE,
                                       t2 = Year) %>% 
                                select(-fYear)) %>% 
   mutate(gamma_LR = log(S_modern/S_historical),
+         gamma_LR_S_PIE = log(S_PIE_modern / S_PIE_historical),
          deltaT = t2 - t1 + 1, 
-         ES_gamma = gamma_LR / deltaT)
+         ES_gamma = gamma_LR / deltaT,
+         ES_gamma_S_PIE = gamma_LR_S_PIE / deltaT)
 
 
 rft_regional_jknife_LR <- left_join(rft_regional_jknife %>% 
                                      filter(fYear=='start') %>% 
                                      rename(S_historical = S_jk, 
+                                            S_PIE_historical = S_PIE_jk,
                                             t1 = Year) %>% 
                                      select(-fYear),
                                    rft_regional_jknife %>% 
                                      filter(fYear=='end') %>% 
                                      rename(S_modern = S_jk,
+                                            S_PIE_modern = S_PIE_jk,
                                             t2 = Year) %>% 
                                      select(-fYear)) %>% 
   mutate(gamma_LR = log(S_modern/S_historical),
+         gamma_LR_S_PIE = log(S_PIE_modern / S_PIE_historical),
          dt = t2 - t1 + 1,
-         ES = gamma_LR / dt)
+         ES = gamma_LR / dt,
+         ES_S_PIE = gamma_LR_S_PIE / dt)
 
 
 
@@ -163,6 +186,3 @@ save(rft_local_LR,
      rft_regional_LR,
      rft_regional_jknife_LR,
      file = '~/Dropbox/1current/spatial_composition_change/results/rft_LRR.Rdata')
-
-
-
