@@ -227,10 +227,12 @@ for(r in 1:n_distinct(florida_nest$Locations)){
 alpha_S <- local_resamps %>% 
   group_by(Locations, plot, year, resample) %>% 
   summarise(S_resamp = n_distinct(Species),
+            eH_resamp = exp(vegan::diversity(N, index = 'shannon')),
             S_PIE_resamp = vegan::diversity(N, index = 'invsimpson')) %>% 
   ungroup() %>% 
   group_by(Locations, plot, year) %>% 
   summarise(S = median(S_resamp),
+            eH = median(eH_resamp),
             S_PIE = median(S_PIE_resamp)) %>% 
   ungroup() %>% 
   rename(region = plot)
@@ -240,10 +242,12 @@ gamma_S <- local_resamps %>%
   summarise(N = sum(N)) %>% 
   group_by(Locations, resample, year) %>% 
   summarise(S_resamp = n_distinct(Species),
+            eH_resamp = exp(vegan::diversity(N, index = 'shannon')),
             S_PIE_resamp = vegan::diversity(N, index = 'invsimpson')) %>% 
   ungroup() %>% 
   group_by(Locations, year) %>% 
   summarise(S = median(S_resamp),
+            eH = median(eH_resamp),
             S_PIE = median(S_PIE_resamp)) %>% 
   ungroup() %>% 
   rename(region = Locations)
@@ -283,10 +287,12 @@ for(r in 1:n_region){
       summarise(N = sum(N)) %>% 
       group_by(year, resample) %>% 
       summarise(S_resamp = n_distinct(Species),
+                eH_resamp = exp(vegan::diversity(N, index = 'shannon')),
                 S_PIE_resamp = vegan::diversity(N, index = 'invsimpson')) %>% 
       ungroup() %>% 
       group_by(year) %>% 
       summarise(S_jk = round(median(S_resamp)),
+                eH_jk = median(eH_resamp),
                 S_PIE_jk = median(S_PIE_resamp)) %>% 
       ungroup() %>% 
       mutate(region = unique(region$Locations),
@@ -302,10 +308,12 @@ for(r in 1:n_region){
       summarise(N = sum(N)) %>% 
       group_by(year, resample) %>% 
       summarise(S_resamp = n_distinct(Species),
+                eH_resamp = exp(vegan::diversity(N, index = 'shannon')),
                 S_PIE_resamp = vegan::diversity(N, index = 'invsimpson')) %>% 
       ungroup() %>% 
       group_by(year) %>% 
       summarise(S_jk = round(median(S_resamp)),
+                eH_jk = median(eH_resamp),
                 S_PIE_jk = median(S_PIE_resamp)) %>% 
       ungroup() %>% 
       mutate(region = unique(region$Locations),

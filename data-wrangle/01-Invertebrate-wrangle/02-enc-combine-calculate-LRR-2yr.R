@@ -47,7 +47,8 @@ enc_alpha <- enc_alpha %>%
   ungroup() %>% 
   # add number of locations per region
   group_by(region) %>% 
-  mutate(nLocations = n_distinct(site_loc))
+  mutate(nLocations = n_distinct(site_loc)) %>% 
+  ungroup()
 
 enc_gamma <- enc_gamma %>% 
   group_by(region) %>% 
@@ -67,71 +68,89 @@ enc_jknife <- enc_jknife %>%
 enc_local_LR <- left_join(enc_alpha %>%
                                filter(fYear=='start') %>% 
                                rename(S_historical = Sbar,
+                                      eH_historical = eHbar,
+                                      S_PIE_historical = S_PIEbar,
                                       t1 = year) %>% 
                                select(-fYear),
                              enc_alpha %>%
                                filter(fYear=='end') %>% 
                                rename(S_modern = Sbar,
+                                      eH_modern = eHbar,
+                                      S_PIE_modern = S_PIEbar,
                                       t2 = year) %>% 
                                select(-fYear)) %>% 
   mutate(alpha_LR = log(S_modern/S_historical),
+         alpha_LR_eH = log(eH_modern/eH_historical),
+         alpha_LR_S_PIE = log(S_PIE_modern/S_PIE_historical),
          deltaT = t2 - t1 + 1,
-         ES = alpha_LR / deltaT)
+         ES = alpha_LR / deltaT,
+         ES_eH = alpha_LR_eH / deltaT,
+         ES_S_PIE = alpha_LR_S_PIE / deltaT)
 
-
-enc_local_mean_LR <- enc_local_LR %>% 
-  group_by(region) %>% 
-  summarise(alpha_LR_mu = mean(alpha_LR),
-            check = mean(log(S_modern/S_historical)),
-            alpha_LR_sd = sd(alpha_LR),
-            ES_mu = mean(ES),
-            ES_se = sd(ES)/(sqrt(n_distinct(site_loc)))) %>% 
-  ungroup()
 
 enc_regional_LR <- left_join(enc_gamma %>% 
                                   filter(fYear=='start') %>% 
                                   rename(S_historical = S, 
+                                         eH_historical = eH,
+                                         S_PIE_historical = S_PIE,
                                          t1 = year) %>% 
                                   select(-fYear),
                                   enc_gamma %>% 
                                   filter(fYear=='end') %>% 
                                   rename(S_modern = S,
+                                         eH_modern = eH,
+                                         S_PIE_modern = S_PIE,
                                          t2 = year) %>% 
                                   select(-fYear)) %>% 
   mutate(gamma_LR = log(S_modern/S_historical),
+         gamma_LR_eH = log(eH_modern / eH_historical),
+         gamma_LR_S_PIE = log(S_PIE_modern / S_PIE_historical),
          deltaT = t2 - t1 + 1,
-         ES = gamma_LR / deltaT)
+         ES = gamma_LR / deltaT,
+         ES_eH = gamma_LR_eH / deltaT,
+         ES_S_PIE = gamma_LR_S_PIE / deltaT)
 
 enc_regional_jknife_LR <- left_join(enc_jknife %>% 
                                          filter(fYear=='start') %>% 
                                          rename(S_historical = S, 
+                                                eH_historical = eH,
+                                                S_PIE_historical = S_PIE,
                                                 t1 = year) %>% 
                                          select(-fYear),
                                          enc_jknife %>% 
                                          filter(fYear=='end') %>% 
                                          rename(S_modern = S,
+                                                eH_modern = eH,
+                                                S_PIE_modern = S_PIE,
                                                 t2 = year) %>% 
                                          select(-fYear)) %>% 
   mutate(gamma_LR = log(S_modern/S_historical),
+         gamma_LR_eH = log(eH_modern / eH_historical),
+         gamma_LR_S_PIE = log(S_PIE_modern / S_PIE_historical),
          deltaT = t2 - t1 + 1,
-         ES = gamma_LR / deltaT)
+         ES = gamma_LR / deltaT,
+         ES_eH = gamma_LR_eH / deltaT,
+         ES_S_PIE = gamma_LR_S_PIE / deltaT)
 
 # reduce the number of resamples to a jacknife size (i.e., nLocations - 1) 
 # so as they don't dominate model fitting
+set.seed(42)
 enc_regional_jknife_LR <- left_join(enc_regional_jknife_LR,
           enc_alpha %>% 
             distinct(region, nLocations)) %>% 
   group_by(region, nLocations) %>% 
-  nest(data = c(t1, S_historical, t2, S_modern, gamma_LR, deltaT, ES)) %>% 
-  # select(-resamp) %>% 
-  sample_n(size = nLocations) %>% 
+  select(resamp, region, nLocations, t1, t2, S_historical, S_modern, gamma_LR, gamma_LR_eH,
+         gamma_LR_S_PIE, deltaT, ES, ES_eH, ES_S_PIE) %>% 
+  nest(data = c(resamp, t1, t2, S_historical, S_modern, gamma_LR, gamma_LR_eH,
+                gamma_LR_S_PIE, deltaT, ES, ES_eH, ES_S_PIE)) %>% 
   ungroup() %>% 
-  unnest(data) %>% 
+  mutate(jk_subsample = map2(data, nLocations, ~slice_sample(.x, n = .y))) %>% 
+  select(-data) %>% 
+  unnest(jk_subsample) %>%
   rename(jacknife = resamp)
 
 
 save(enc_local_LR,
-     enc_local_mean_LR,
      enc_regional_LR,
      enc_regional_jknife_LR,
      file = '~/Dropbox/1current/spatial_composition_change/results/enc_LRR.Rdata')

@@ -5,7 +5,7 @@ options(warn = -1)
 
 library(tidyverse)
 
-idaho <- readRDS('~/Dropbox/1current/spatial_composition_change/code/invertebrate_data/code_from_Roel/Vectorbase 2021/Montana, North Dakota, Idaho.rds') %>% 
+idaho <- readRDS('~/Dropbox/1current/spatial_composition_change/data/Montana, North Dakota, Idaho.rds') %>% 
   as_tibble()
 
 # one locations
@@ -166,7 +166,7 @@ for(p in 1:n_distinct(idaho_nest$plot)){
       
       samp = plot_t %>% 
         group_by(month) %>% 
-        sample_n(as.numeric(min_days))
+        slice_sample(n = as.numeric(min_days))
       
       # combine and calculate richness for year
       alpha_samp <- samp %>% 
@@ -186,19 +186,29 @@ for(p in 1:n_distinct(idaho_nest$plot)){
 
 alpha_S <- local_resamps %>% 
   group_by(plot, year, resample) %>% 
-  summarise(S_resamp = n_distinct(Species)) %>% 
+  summarise(S_resamp = n_distinct(Species),
+            eH_resamp = exp(vegan::diversity(N, index = 'shannon')),
+            S_PIE_resamp = vegan::diversity(N, index = 'invsimpson')) %>% 
   ungroup() %>% 
   group_by(plot, year) %>% 
-  summarise(S = median(S_resamp)) %>% 
+  summarise(S = median(S_resamp),
+            eH = median(eH_resamp),
+            S_PIE = median(S_PIE_resamp)) %>% 
   ungroup() %>% 
   mutate(region = 'idaho-n_dakota-montana')
 
 gamma_S <- local_resamps %>% 
+  group_by(year, resample,Species) %>% 
+  summarise(N = sum(N)) %>% 
   group_by(year, resample) %>% 
-  summarise(S_resamp = n_distinct(Species)) %>% 
+  summarise(S_resamp = n_distinct(Species),
+            eH_resamp = exp(vegan::diversity(N, index = 'shannon')),
+            S_PIE_resamp = vegan::diversity(N, index = 'invsimpson')) %>% 
   ungroup() %>% 
   group_by(year) %>% 
-  summarise(S = median(S_resamp)) %>% 
+  summarise(S = median(S_resamp),
+            eH = median(eH_resamp),
+            S_PIE = median(S_PIE_resamp)) %>% 
   ungroup() %>% 
   mutate(region = 'idaho-n_dakota-montana')
 
@@ -222,11 +232,17 @@ for(j in 1:n_plots){
     ungroup() %>% 
     slice(-j) %>% 
     unnest(data) %>% 
+    group_by(year, resample, Species) %>% 
+    summarise(N = sum(N)) %>% 
     group_by(year, resample) %>% 
-    summarise(S_resamp = n_distinct(Species)) %>% 
+    summarise(S_resamp = n_distinct(Species),
+              eH_resamp = exp(vegan::diversity(N, index = 'shannon')),
+              S_PIE_resamp = vegan::diversity(N, index = 'invsimpson')) %>% 
     ungroup() %>% 
     group_by(year) %>% 
-    summarise(S_jk = round(median(S_resamp))) %>% 
+    summarise(S_jk = round(median(S_resamp)),
+              eH_jk = median(eH_resamp),
+              S_PIE_jk = median(S_PIE_resamp)) %>% 
     ungroup() %>% 
     mutate(region = 'idaho-n_dakota-montana',
            jacknife = j)
@@ -237,12 +253,17 @@ for(j in 1:n_plots){
     ungroup() %>% 
     slice(-j) %>% 
     unnest(data) %>% 
+    group_by(year, resample, Species) %>% 
+    summarise(N = sum(N)) %>% 
     group_by(year, resample) %>% 
-    summarise(S_resamp = n_distinct(Species)) %>% 
+    summarise(S_resamp = n_distinct(Species),
+              eH_resamp = exp(vegan::diversity(N, index = 'shannon')),
+              S_PIE_resamp = vegan::diversity(N, index = 'invsimpson')) %>% 
     ungroup() %>% 
     group_by(year) %>% 
-    summarise(S_jk = round(median(S_resamp))) %>% 
-    ungroup() %>% 
+    summarise(S_jk = round(median(S_resamp)),
+              eH_jk = median(eH_resamp),
+              S_PIE_jk = median(S_PIE_resamp)) %>% 
     mutate(region = 'idaho-n_dakota-montana',
            jacknife = j)
   
@@ -259,7 +280,7 @@ study_jknife <- study_jknife %>%
                            year==2017 ~ 'end'))
 
 save(local_resamps, alpha_S, gamma_S, study_jknife,
-     file = '~/Dropbox/1current/spatial_composition_change/code/invertebrate_data/clean_data/idaho-n_dakota-montana_clean.Rdata')
+     file = '~/Dropbox/1current/spatial_composition_change/data/idaho-n_dakota-montana_clean.Rdata')
 
 options(warn = defaultW)
 

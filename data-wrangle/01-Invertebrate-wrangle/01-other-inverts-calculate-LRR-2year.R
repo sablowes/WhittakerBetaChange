@@ -55,9 +55,10 @@ raw_new <- invert_filtered_2timeOnly %>%
   unite(ObsEventID, c(Datasource_ID, loc_plot, Year), remove = F) %>% 
   group_by(Datasource_ID, loc_plot, Year) %>% 
   mutate(sample_effort = n_distinct(ObsEventID)) %>% 
-  select(Datasource_ID, loc_plot, Year, sample_effort, Taxon) %>% 
+  select(Datasource_ID, loc_plot, Year, sample_effort, Taxon, Number) %>% 
+  rename(N = Number) %>% 
   group_by(Datasource_ID, loc_plot, Year, sample_effort) %>% 
-  nest(data = c(Taxon)) %>% 
+  nest(data = c(Taxon, N)) %>% 
   ungroup() %>% 
   group_by(Datasource_ID, loc_plot) %>% 
   mutate(fYear = ifelse(Year==min(Year), 'start', 'end')) %>% 
@@ -69,12 +70,18 @@ raw_new %>%
   distinct(Datasource_ID)
 
 local_S <- raw_new %>% 
-  mutate(S = map(data, ~n_distinct(.x$Taxon)))
+  mutate(S = map(data, ~n_distinct(.x$Taxon)),
+         eH = map(data, ~exp(vegan::diversity(.x$N, index= 'shannon'))),
+         S_PIE = map(data, ~vegan::diversity(.x$N, index= 'invsimpson')))
 
 regional_S <- raw_new %>% 
   unnest(data) %>% 
+  group_by(Datasource_ID, fYear, Taxon) %>% 
+  summarise(N = sum(N)) %>% 
   group_by(Datasource_ID, fYear) %>% 
-  summarise(S = n_distinct(Taxon)) %>% 
+  summarise(S = n_distinct(Taxon),
+            eH = exp(vegan::diversity(N, index = 'shannon')),
+            S_PIE = vegan::diversity(N, index = 'invsimpson')) %>% 
   ungroup() %>% 
   # put the Year back in for start and finish time points
   left_join(local_S %>% 
@@ -83,9 +90,11 @@ regional_S <- raw_new %>%
 # visual sanity check
 left_join(local_S %>% 
             unnest(S) %>% 
-            rename(local_S = S),
+            rename(local_S = S) %>% 
+            select(-eH, -S_PIE),
           regional_S %>% 
-            rename(regional_S = S)) %>% 
+            rename(regional_S = S) %>% 
+            select(-eH, -S_PIE)) %>% 
   ggplot() +
   geom_point(aes(x = local_S, y = regional_S)) +
   geom_abline(intercept = 0, slope = 1, lty = 2)
@@ -118,16 +127,24 @@ for(i in 1:length(unique(prep$Datasource_ID))){
     start_temp = study_start %>% 
       slice(-j) %>% 
       unnest(data) %>% 
+      group_by(Datasource_ID, fYear, Taxon) %>% 
+      summarise(N = sum(N)) %>% 
       group_by(Datasource_ID, fYear) %>% 
-      summarise(S_jk = n_distinct(Taxon)) %>% 
+      summarise(S_jk = n_distinct(Taxon),
+                eH_jk = exp(vegan::diversity(N, index = 'shannon')),
+                S_PIE_jk = vegan::diversity(N, index = 'invsimpson')) %>% 
       ungroup() %>% 
       mutate(jacknife = j)
     
     end_temp = study_end %>% 
       slice(-j) %>% 
       unnest(data) %>% 
+      group_by(Datasource_ID, fYear, Taxon) %>% 
+      summarise(N = sum(N)) %>% 
       group_by(Datasource_ID, fYear) %>% 
-      summarise(S_jk = n_distinct(Taxon)) %>% 
+      summarise(S_jk = n_distinct(Taxon),
+                eH_jk = exp(vegan::diversity(N, index = 'shannon')),
+                S_PIE_jk = vegan::diversity(N, index = 'invsimpson')) %>% 
       ungroup() %>% 
       mutate(jacknife = j)
     
@@ -153,44 +170,60 @@ left_join(regional_S,
 
 # calculate local LR
 invert_local_LR <- left_join(local_S %>%
-                           unnest(S) %>% 
+                           unnest(cols = c(S, eH, S_PIE)) %>% 
                            filter(fYear=='start') %>% 
                            rename(S_historical = S,
+                                  eH_historical = eH,
+                                  S_PIE_historical = S_PIE,
                                   t1 = Year) %>% 
                            select(-fYear, -sample_effort, -data),
                          local_S %>%
-                           unnest(S) %>% 
+                           unnest(cols = c(S, eH, S_PIE)) %>% 
                            filter(fYear=='end') %>% 
                            rename(S_modern = S,
+                                  eH_modern = eH,
+                                  S_PIE_modern = S_PIE,
                                   t2 = Year) %>% 
                            select(-fYear, -sample_effort, -data)) %>% 
   mutate(alpha_LR = log(S_modern/S_historical),
+         alpha_LR_eH = log(eH_modern / eH_historical),
+         alpha_LR_S_PIE = log(S_PIE_modern / S_PIE_historical),
          deltaT = t2 - t1 + 1,
-         ES = alpha_LR / deltaT)
+         ES = alpha_LR / deltaT,
+         ES_eH = alpha_LR_eH / deltaT,
+         ES_S_PIE = alpha_LR_S_PIE / deltaT)
 
-
-invert_local_mean_LR <- invert_local_LR %>% 
-  group_by(Datasource_ID) %>% 
-  summarise(alpha_LR_mu = mean(alpha_LR),
-            check = mean(log(S_modern/S_historical)),
-            alpha_LR_sd = sd(alpha_LR),
-            ES_mu = mean(ES),
-            ES_se = sd(ES)/(sqrt(n_distinct(loc_plot)))) %>% 
-  ungroup()
-
+# 
+# invert_local_mean_LR <- invert_local_LR %>% 
+#   group_by(Datasource_ID) %>% 
+#   summarise(alpha_LR_mu = mean(alpha_LR),
+#             check = mean(log(S_modern/S_historical)),
+#             alpha_LR_sd = sd(alpha_LR),
+#             ES_mu = mean(ES),
+#             ES_se = sd(ES)/(sqrt(n_distinct(loc_plot)))) %>% 
+#   ungroup()
+# 
 invert_regional_LR <- left_join(regional_S %>% 
                               filter(fYear=='start') %>% 
-                              rename(S_historical = S, 
-                                     t1 = Year) %>% 
+                                rename(S_historical = S,
+                                       eH_historical = eH,
+                                       S_PIE_historical = S_PIE,
+                                       t1 = Year) %>% 
                               select(-fYear),
                             regional_S %>% 
                               filter(fYear=='end') %>% 
                               rename(S_modern = S,
+                                     eH_modern = eH,
+                                     S_PIE_modern = S_PIE,
                                      t2 = Year) %>% 
                               select(-fYear)) %>% 
   mutate(gamma_LR = log(S_modern/S_historical),
+         gamma_LR_eH = log(eH_modern / eH_historical),
+         gamma_LR_S_PIE = log(S_PIE_modern / S_PIE_historical),
          deltaT = t2 - t1 + 1,
-         ES = gamma_LR / deltaT)
+         ES = gamma_LR / deltaT,
+         ES_eH = gamma_LR_eH / deltaT,
+         ES_S_PIE = gamma_LR_S_PIE / deltaT)
 
 # calculate jacknife regional LR
 # first put Year back in for effect size calculation
@@ -201,16 +234,24 @@ invert_regional_jknife <- left_join(regional_jknife,
 invert_regional_jknife_LR <- left_join(invert_regional_jknife %>% 
                                      filter(fYear=='start') %>% 
                                      rename(S_historical = S_jk, 
+                                            eH_historical = eH_jk,
+                                            S_PIE_historical = S_PIE_jk,
                                             t1 = Year) %>% 
                                      select(-fYear),
                                    invert_regional_jknife %>% 
                                      filter(fYear=='end') %>% 
                                      rename(S_modern = S_jk,
+                                            eH_modern = eH_jk,
+                                            S_PIE_modern = S_PIE_jk,
                                             t2 = Year) %>% 
                                      select(-fYear)) %>% 
   mutate(gamma_LR = log(S_modern/S_historical),
+         gamma_LR_eH = log(eH_modern / eH_historical),
+         gamma_LR_S_PIE = log(S_PIE_modern / S_PIE_historical),
          deltaT = t2 - t1 + 1,
-         ES = gamma_LR / deltaT)
+         ES = gamma_LR / deltaT,
+         ES_eH = gamma_LR_eH / deltaT,
+         ES_S_PIE = gamma_LR_S_PIE / deltaT)
 
 ggplot() +
   geom_point(data = left_join(invert_local_mean_LR, 
@@ -256,7 +297,7 @@ ggplot() +
 
 
 save(invert_local_LR, 
-     invert_local_mean_LR,
+     # invert_local_mean_LR,
      invert_regional_LR,
      invert_regional_jknife_LR,
      invert_regional_jknife,

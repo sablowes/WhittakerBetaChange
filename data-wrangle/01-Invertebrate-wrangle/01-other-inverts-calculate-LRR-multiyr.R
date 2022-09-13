@@ -2,12 +2,16 @@
 
 load('~/Dropbox/1current/spatial_composition_change/data/invert-location-plots.Rdata')
 
+invert_years_max_loc <- invert_years_max_loc %>% 
+  unite(study_yr1, c(Datasource_ID, year1), remove = FALSE) %>% 
+  unite(study_yr2, c(Datasource_ID, year2), remove = FALSE) 
+
 # check how many Years for each study, identify median Year for those with > 3 Years sampled
 study_yr_median <- tibble()
-for(s in 1:nrow(invert_Years_max_loc)){
-  print(paste('study ', s, 'in ', nrow(invert_Years_max_loc)))
+for(s in 1:nrow(invert_years_max_loc)){
+  print(paste('study ', s, 'in ', nrow(invert_years_max_loc)))
   # sth study
-  study_s = invert_Years_max_loc$Datasource_ID[s]
+  study_s = invert_years_max_loc$Datasource_ID[s]
   
   study_s_dat <- invert_filtered %>% 
     filter(Datasource_ID==study_s)
@@ -30,9 +34,9 @@ for(s in 1:nrow(invert_Years_max_loc)){
 first_last_only <- study_yr_median %>% 
   filter(is.na(med_yr))
 
-fl_filter <- invert_Years_max_loc %>% 
-  unite(study_yr1, c(Datasource_ID, Year1), remove = FALSE) %>% 
-  unite(study_yr2, c(Datasource_ID, Year2), remove = FALSE) %>% 
+fl_filter <- invert_years_max_loc %>% 
+  unite(study_yr1, c(Datasource_ID, year1), remove = FALSE) %>% 
+  unite(study_yr2, c(Datasource_ID, year2), remove = FALSE) %>% 
   filter(Datasource_ID %in% first_last_only$Datasource_ID)
 
 fl_dat <- invert_filtered %>% 
@@ -200,13 +204,19 @@ fl_dat <- fl_dat %>%
 
 # calculate local richness (same as primary analysis)
 fl_local_S <- fl_dat %>% 
-  mutate(S = map(data, ~n_distinct(.x$Taxon)))
+  mutate(S = map(data, ~n_distinct(.x$Taxon)),
+         eH = map(data, ~exp(vegan::diversity(.x$Number, index = 'shannon'))),
+         S_PIE = map(data, ~vegan::diversity(.x$Number, index = 'invsimpson')))
 
 # calculate regional richness 
 fl_regional_S <- fl_dat %>% 
   unnest(data) %>% 
+  group_by(Datasource_ID, period, Taxon) %>% 
+  summarise(N = sum(Number)) %>% 
   group_by(Datasource_ID, period) %>% 
-  summarise(S = n_distinct(Taxon)) %>% 
+  summarise(S = n_distinct(Taxon),
+            eH = exp(vegan::diversity(N, index = 'shannon')),
+            S_PIE = vegan::diversity(N, index = 'invsimpson')) %>% 
   ungroup() 
 
 # and regional richness jackknife
@@ -237,16 +247,24 @@ for(i in 1:length(unique(fl_dat$Datasource_ID))){
     start_temp = study_start %>% 
       slice(-j) %>% 
       unnest(data) %>% 
+      group_by(Datasource_ID, period, Taxon) %>% 
+      summarise(N = sum(Number)) %>% 
       group_by(Datasource_ID, period) %>% 
-      summarise(S_jk = n_distinct(Taxon)) %>% 
+      summarise(S_jk = n_distinct(Taxon),
+                eH_jk = exp(vegan::diversity(N, index = 'shannon')),
+                S_PIE_jk = vegan::diversity(N, index = 'invsimpson')) %>% 
       ungroup() %>% 
       mutate(jacknife = j)
     
     end_temp = study_end %>% 
       slice(-j) %>% 
       unnest(data) %>% 
+      group_by(Datasource_ID, period, Taxon) %>% 
+      summarise(N = sum(Number)) %>% 
       group_by(Datasource_ID, period) %>% 
-      summarise(S_jk = n_distinct(Taxon)) %>% 
+      summarise(S_jk = n_distinct(Taxon),
+                eH_jk = exp(vegan::diversity(N, index = 'shannon')),
+                S_PIE_jk = vegan::diversity(N, index = 'invsimpson')) %>% 
       ungroup() %>% 
       mutate(jacknife = j)
     
@@ -268,11 +286,15 @@ multi_yr_local_S <- bind_rows(multi_yr_dat1 %>%
                               multi_yr_dat2 %>% 
                                 select(-target_num_yrs)) %>% 
   # first, richness in each plot in each Year
-  mutate(S_yr = map(data, ~n_distinct(.x$Taxon))) %>% 
-  unnest(S_yr) %>% 
+  mutate(S_yr = map(data, ~n_distinct(.x$Taxon)),
+         eH_yr = map(data, ~exp(vegan::diversity(.x$Number, index = 'shannon'))),
+         S_PIE_yr = map(data, ~vegan::diversity(.x$Number, index = 'invsimpson'))) %>% 
+  unnest(cols = c(S_yr, eH_yr, S_PIE_yr)) %>% 
   # now average over the Years in each period for each plot
   group_by(Datasource_ID, loc_plot, period) %>% 
-  summarise(S = (mean(S_yr)), # round to integer
+  summarise(S = mean(S_yr), 
+            eH = mean(eH_yr),
+            S_PIE = mean(S_PIE_yr),
             nyr = n_distinct(Year)) %>% 
   ungroup()
 
@@ -287,27 +309,26 @@ multi_yr_regional_S <- bind_rows(multi_yr_dat1 %>%
                                    select(-target_num_yrs)) %>% 
   unnest(data) %>% 
   # first get regional diversity in each Year (i.e., combine plots within regions and Years)
-  group_by(Datasource_ID, yr_i, period) %>%
+  group_by(Datasource_ID, yr_i, period, Taxon) %>%
+  summarise(N = sum(Number)) %>% 
+  group_by(Datasource_ID, yr_i, period) %>% 
   summarise(S_yr = n_distinct(Taxon),
-            nsite = n_distinct(loc_plot)) %>%
+            eH_yr = exp(vegan::diversity(N, index = 'shannon')),
+            S_PIE_yr = vegan::diversity(N, index = 'invsimpson')) %>%
   group_by(Datasource_ID, period) %>% 
-  summarise(S = mean(S_yr)) %>% 
+  summarise(S = mean(S_yr),
+            eH = mean(eH_yr),
+            S_PIE = mean(S_PIE_yr)) %>% 
   ungroup()
 
 #  sanity checks: is regional_S > local_S?
 left_join(fl_local_S %>% 
             unnest(S) %>% 
-            rename(local_S = S),
+            rename(local_S = S) %>% 
+          select(-eH, -S_PIE),
           fl_regional_S %>% 
-            rename(regional_S = S)) %>% #filter(local_S > regional_S) 
-  ggplot() +
-  geom_point(aes(x = local_S, y = regional_S)) +
-  geom_abline(intercept = 0, slope = 1, lty = 2)
-
-left_join(multi_yr_local_S %>% 
-            rename(local_S = S),
-          multi_yr_regional_S %>% 
-            rename(regional_S = S)) %>% #filter(local_S > regional_S) 
+            rename(regional_S = S) %>% 
+            select(-eH, -S_PIE)) %>% #filter(local_S > regional_S) 
   ggplot() +
   geom_point(aes(x = local_S, y = regional_S)) +
   geom_abline(intercept = 0, slope = 1, lty = 2)
@@ -352,8 +373,12 @@ for(i in 1:length(unique(multiyr_jacknife_prep$Datasource_ID))){
         filter(yr_i==nyr[yr]) %>% 
         slice(-j) %>% 
         unnest(data) %>% 
+        group_by(Datasource_ID, yr_i, period, Taxon) %>% 
+        summarise(N = sum(Number)) %>% 
         group_by(Datasource_ID, yr_i, period) %>% 
-        summarise(S_jk_yr = n_distinct(Taxon)) %>% 
+        summarise(S_jk_yr = n_distinct(Taxon),
+                  eH_jk_yr = exp(vegan::diversity(N, index='shannon')),
+                  S_PIE_jk_yr = vegan::diversity(N, index = 'invsimpson')) %>% 
         ungroup() %>% 
         mutate(jacknife = j)
       
@@ -364,8 +389,12 @@ for(i in 1:length(unique(multiyr_jacknife_prep$Datasource_ID))){
         filter(yr_i==nyr[yr]) %>% 
         slice(-j) %>% 
         unnest(data) %>% 
+        group_by(Datasource_ID, yr_i, period, Taxon) %>% 
+        summarise(N = sum(Number)) %>% 
         group_by(Datasource_ID, yr_i, period) %>% 
-        summarise(S_jk_yr = n_distinct(Taxon)) %>% 
+        summarise(S_jk_yr = n_distinct(Taxon),
+                  eH_jk_yr = exp(vegan::diversity(N, index='shannon')),
+                  S_PIE_jk_yr = vegan::diversity(N, index = 'invsimpson')) %>%  
         ungroup() %>% 
         mutate(jacknife = j)
       
@@ -387,32 +416,35 @@ for(i in 1:length(unique(multiyr_jacknife_prep$Datasource_ID))){
 # need to average over Years for each period
 multiyr_regional_jacknife <- multiyr_regional_jacknife_allyrs %>% 
   group_by(Datasource_ID, period, jacknife, n_loc_plots) %>% 
-  summarise(S_jk = mean(S_jk_yr)) %>% 
+  summarise(S_jk = mean(S_jk_yr),
+            eH_jk = mean(eH_jk_yr),
+            S_PIE_jk = mean(S_PIE_jk_yr)) %>% 
   ungroup()
 
 # calculate local LR
 local_S <- bind_rows(fl_local_S %>% 
-                       unnest(S) %>% 
+                       unnest(cols = c(S, eH, S_PIE)) %>% 
                        select(-data),
                      multi_yr_local_S %>% 
                        select(-nyr))
 
 invert_local_LR <- left_join(local_S %>%
                            filter(period=='first') %>% 
-                           rename(S_historical = S) %>% 
+                           rename(S_historical = S,
+                                  eH_historical = eH,
+                                  S_PIE_historical = S_PIE) %>% 
                            select(-Year, -period),
                          local_S %>%
                            filter(period=='second') %>% 
-                           rename(S_modern = S) %>% 
+                           rename(S_modern = S,
+                                  eH_modern = eH,
+                                  S_PIE_modern = S_PIE) %>% 
                            select(-Year, -period)) %>% 
-  mutate(alpha_LR = log(S_modern/S_historical))
+  mutate(alpha_LR = log(S_modern/S_historical),
+         alpha_LR_eH = log(eH_modern / eH_historical),
+         alpha_LR_S_PIE = log(S_PIE_modern / S_PIE_historical))
 
 
-invert_local_mean_LR <- invert_local_LR %>% 
-  group_by(Datasource_ID) %>% 
-  summarise(alpha_LR_mu = mean(alpha_LR),
-            alpha_LR_sd = sd(alpha_LR)) %>% 
-  ungroup()
 
 # regional log-ratio
 regional_S <- bind_rows(fl_regional_S,
@@ -420,13 +452,19 @@ regional_S <- bind_rows(fl_regional_S,
 
 invert_regional_LR <- left_join(regional_S %>% 
                               filter(period=='first') %>% 
-                              rename(S_historical = S) %>% 
+                              rename(S_historical = S,
+                                     eH_historical = eH,
+                                     S_PIE_historical = S_PIE) %>% 
                               select(-period),
                             regional_S %>% 
                               filter(period=='second') %>% 
-                              rename(S_modern = S) %>% 
+                              rename(S_modern = S,
+                                     eH_modern = eH,
+                                     S_PIE_modern = S_PIE) %>% 
                               select(-period)) %>% 
-  mutate(gamma_LR = log(S_modern/S_historical))
+  mutate(gamma_LR = log(S_modern/S_historical),
+         gamma_LR_eH = log(eH_modern / eH_historical),
+         gamma_LR_S_PIE = log(S_PIE_modern / S_PIE_historical))
 
 # regional log-ratio
 regional_S_jacknife <- bind_rows(fl_regional_jacknife,
@@ -434,32 +472,20 @@ regional_S_jacknife <- bind_rows(fl_regional_jacknife,
 
 invert_regional_jacknife_LR <- left_join(regional_S_jacknife %>% 
                                        filter(period=='first') %>% 
-                                       rename(S_historical = S_jk) %>% 
+                                       rename(S_historical = S_jk,
+                                              eH_historical = eH_jk,
+                                              S_PIE_historical = S_PIE_jk) %>% 
                                        select(-period),
                                      regional_S_jacknife %>% 
                                        filter(period=='second') %>% 
-                                       rename(S_modern = S_jk) %>% 
+                                       rename(S_modern = S_jk,
+                                              eH_modern = eH_jk,
+                                              S_PIE_modern = S_PIE_jk) %>% 
                                        select(-period)) %>% 
-  mutate(gamma_LR = log(S_modern/S_historical))
+  mutate(gamma_LR = log(S_modern/S_historical),
+         gamma_LR_eH = log(eH_modern / eH_historical),
+         gamma_LR_S_PIE = log(S_PIE_modern / S_PIE_historical))
 
-# visual inspection
-ggplot() +
-  geom_point(data = left_join(invert_local_mean_LR, 
-                              invert_regional_LR),
-             aes(x = alpha_LR_mu, y = gamma_LR)) +
-  geom_abline(intercept = 0, slope = 1, lty = 2) +
-  geom_hline(yintercept = 0, lty = 2) +
-  geom_vline(xintercept = 0, lty = 2)
-
-ggplot() +
-  geom_point(data = left_join(invert_local_mean_LR, 
-                              invert_regional_jacknife_LR %>% 
-                                group_by(Datasource_ID) %>% 
-                                summarise(gamma_LR = mean(gamma_LR))),
-             aes(x = alpha_LR_mu, y = gamma_LR)) +
-  geom_abline(intercept = 0, slope = 1, lty = 2) +
-  geom_hline(yintercept = 0, lty = 2) +
-  geom_vline(xintercept = 0, lty = 2)
 
 # use the same dt (duration) as initial analyses
 load('~/Dropbox/1current/spatial_composition_change/results/allLRR.Rdata')
