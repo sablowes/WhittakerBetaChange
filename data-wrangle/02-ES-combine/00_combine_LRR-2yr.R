@@ -54,7 +54,7 @@ local_LRR <- bind_rows(bt_local_LR %>%
                                 nLocations = n_distinct(local_level)) %>% 
                          ungroup() %>% 
                          rename(dt = deltaT) %>% 
-                         select(-STUDY_ID, -loc_plot),
+                         select(-STUDY_ID, -loc_plot, -ABUNDANCE_TYPE, -BIOMASS_TYPE),
                        rft_local_LR %>% 
                          rename(dt = deltaT,
                                 nLocations = n_sites) %>% 
@@ -67,7 +67,7 @@ local_LRR <- bind_rows(bt_local_LR %>%
                          group_by(regional_level) %>% 
                          mutate(local_level = as.character(1:n())) %>% 
                          ungroup() %>% 
-                         select(-dataset_id, -regional, -local, -alpha_natural),
+                         select(-dataset_id, -regional, -local, -alpha_natural, -metric),
                        richness_only_local_LR %>% 
                          mutate(database = 'Sonly',
                                 regional_level = paste0('Sonly_', regional_level)) %>% 
@@ -107,82 +107,135 @@ regional_LRR <- bind_rows(bt_regional_LR %>%
                             mutate(regional_level = paste0('bt_', STUDY_ID),
                                    database = 'BioTIME',
                                    ES_gamma = ES,
+                                   ES_gamma_eH = ES_eH,
+                                   ES_gamma_S_PIE = ES_S_PIE,
                                    dt = deltaT) %>% 
-                            select(regional_level, gamma_LR, ES_gamma, database, dt, S_historical, S_modern, t1, t2),
+                            select(regional_level, gamma_LR, gamma_LR_eH, gamma_LR_S_PIE,
+                                   ES_gamma, ES_gamma_eH, ES_gamma_S_PIE, database, dt, 
+                                   S_historical, S_modern, t1, t2),
                           rft_regional_LR %>% 
                             mutate(regional_level = paste0('rft_', SourceID),
                                    database = 'RivFishTime',
                                    dt = deltaT) %>% 
-                            select(regional_level, gamma_LR, ES_gamma, database, dt, S_historical, S_modern, t1, t2),
+                            select(regional_level, gamma_LR, gamma_LR_eH, gamma_LR_S_PIE,
+                                   ES_gamma, ES_gamma_eH, ES_gamma_S_PIE, database, dt, 
+                                   S_historical, S_modern, t1, t2),
                           homog_regional_LR %>% 
                             rename(gamma_LR = regional_LR,
-                                   ES_gamma = ES) %>% 
+                                   gamma_LR_eH = regional_LR_eH,
+                                   gamma_LR_S_PIE = regional_LR_S_PIE,
+                                   ES_gamma = ES,
+                                   ES_gamma_eH = ES_eH,
+                                   ES_gamma_S_PIE = ES_S_PIE) %>% 
                             mutate(database = 'Homogenisation') %>% 
-                            select(regional_level, gamma_LR, ES_gamma, database, dt, S_historical, S_modern, t1, t2),
+                            select(regional_level, gamma_LR, gamma_LR_eH, gamma_LR_S_PIE,
+                                   ES_gamma, ES_gamma_eH, ES_gamma_S_PIE, database, dt, 
+                                   S_historical, S_modern, t1, t2),
                           richness_only_regional_LR %>% 
                             mutate(database = 'Sonly',
                                    regional_level = paste0('Sonly_', regional_level)) %>% 
-                            select(regional_level, gamma_LR, ES_gamma, database, dt, S_historical, S_modern, t1, t2),
+                            select(regional_level, gamma_LR, 
+                                   ES_gamma, database, dt, 
+                                   S_historical, S_modern, t1, t2),
                           invert_regional_LR %>% 
                             rename(ES_gamma = ES,
+                                   ES_gamma_eH = ES_eH,
+                                   ES_gamma_S_PIE = ES_S_PIE,
                                    dt = deltaT) %>% 
                             mutate(database = 'Invertebrates', 
                                    regional_level = paste0('i_', Datasource_ID)) %>% 
-                            select(regional_level, gamma_LR, ES_gamma, database, dt, S_historical, S_modern, t1, t2),
+                            select(regional_level, gamma_LR, gamma_LR_eH, gamma_LR_S_PIE,
+                                   ES_gamma, ES_gamma_eH, ES_gamma_S_PIE, database, dt, 
+                                   S_historical, S_modern, t1, t2),
                           mosquito_regional_LR %>% 
                             rename(ES_gamma = ES,
+                                   ES_gamma_eH = ES_eH,
+                                   ES_gamma_S_PIE = ES_S_PIE,
                                    dt = deltaT) %>% 
                             mutate(database = 'Invertebrates', 
                                    regional_level = paste0('i_', region)) %>% 
-                            select(regional_level, gamma_LR, ES_gamma, database, dt, S_historical, S_modern, t1, t2),
+                            select(regional_level, gamma_LR, gamma_LR_eH, gamma_LR_S_PIE,
+                                   ES_gamma, ES_gamma_eH, ES_gamma_S_PIE, database, dt, 
+                                   S_historical, S_modern, t1, t2),
                           enc_regional_LR %>% 
                             rename(ES_gamma = ES,
+                                   ES_gamma_eH = ES_eH,
+                                   ES_gamma_S_PIE = ES_S_PIE,
                                    dt = deltaT) %>% 
                             mutate(database = 'Invertebrates', 
                                    regional_level = paste0('i_', region)) %>% 
-                            select(regional_level, gamma_LR, ES_gamma, database, dt, S_historical, S_modern, t1, t2))
+                            select(regional_level, gamma_LR, gamma_LR_eH, gamma_LR_S_PIE,
+                                   ES_gamma, ES_gamma_eH, ES_gamma_S_PIE, database, dt, 
+                                   S_historical, S_modern, t1, t2))
 
 # Sonly has no resamples
 regional_jknife_LRR <- bind_rows(bt_regional_jknife_LR %>% 
                                    mutate(regional_level = paste0('bt_', STUDY_ID),
                                           database = 'BioTIME',
                                           ES_gamma = ES,
+                                          ES_gamma_eH = ES_eH,
+                                          ES_gamma_S_PIE = ES_S_PIE,
                                           dt = deltaT) %>% 
-                                   select(regional_level, gamma_LR, ES_gamma, database, dt, S_historical, S_modern, jacknife),
+                                   select(regional_level, gamma_LR, gamma_LR_eH, gamma_LR_S_PIE,
+                                          ES_gamma, ES_gamma_eH, ES_gamma_S_PIE, database, dt, 
+                                          S_historical, S_modern, t1, t2),
                                  rft_regional_jknife_LR %>% 
                                    mutate(regional_level = paste0('rft_', SourceID),
                                           database = 'RivFishTime',
-                                          ES_gamma = ES) %>% 
-                                   select(regional_level, gamma_LR, ES_gamma, database, dt, S_historical, S_modern, jacknife),
+                                          ES_gamma = ES,
+                                          ES_gamma_eH = ES_eH,
+                                          ES_gamma_S_PIE = ES_S_PIE) %>% 
+                                   select(regional_level, gamma_LR, gamma_LR_eH, gamma_LR_S_PIE,
+                                          ES_gamma, ES_gamma_eH, ES_gamma_S_PIE, database, dt, 
+                                          S_historical, S_modern, t1, t2),
                                  homog_regional_jknife_LR %>% 
                                    rename(gamma_LR = regional_LR,
-                                          ES_gamma = ES) %>% 
+                                          gamma_LR_eH = regional_LR_eH,
+                                          gamma_LR_S_PIE = regional_LR_S_PIE,
+                                          ES_gamma = ES,
+                                          ES_gamma_eH = ES_eH,
+                                          ES_gamma_S_PIE = ES_S_PIE) %>% 
                                    mutate(database = 'Homogenisation') %>% 
-                                   select(regional_level, gamma_LR, ES_gamma, database, dt, S_historical, S_modern, jacknife),
-                                 # NB: not resamples, included for completeness
+                                   select(regional_level, gamma_LR, gamma_LR_eH, gamma_LR_S_PIE,
+                                          ES_gamma, ES_gamma_eH, ES_gamma_S_PIE, database, dt, 
+                                          S_historical, S_modern, t1, t2),
+                                 # NB: no resamples, included for completeness
                                  richness_only_regional_LR %>% 
                                    mutate(database = 'Sonly',
                                           regional_level = paste0('Sonly_', regional_level)) %>% 
-                                   select(regional_level, gamma_LR, ES_gamma, database, dt, S_historical, S_modern),
+                                   select(regional_level, gamma_LR,
+                                          ES_gamma, database, dt, 
+                                          S_historical, S_modern, t1, t2),
                                  invert_regional_jknife_LR %>% 
                                    rename(ES_gamma = ES,
+                                          ES_gamma_eH = ES_eH,
+                                          ES_gamma_S_PIE = ES_S_PIE,
                                           dt = deltaT) %>% 
                                    mutate(database = 'Invertebrates', 
                                           regional_level = paste0('i_', Datasource_ID)) %>% 
-                                   select(regional_level, gamma_LR, ES_gamma, database, dt, S_historical, S_modern),
+                                   select(regional_level, gamma_LR, gamma_LR_eH, gamma_LR_S_PIE,
+                                          ES_gamma, ES_gamma_eH, ES_gamma_S_PIE, database, dt, 
+                                          S_historical, S_modern, t1, t2),
                                  mosquito_regional_jknife_LR %>% 
                                    rename(ES_gamma = ES,
+                                          ES_gamma_eH = ES_eH,
+                                          ES_gamma_S_PIE = ES_S_PIE,
                                           dt = deltaT) %>% 
                                    mutate(database = 'Invertebrates', 
                                           regional_level = paste0('i_', region)) %>% 
-                                   select(regional_level, gamma_LR, ES_gamma, database, dt, S_historical, S_modern),
-                                 # NB: rarefaction resamples, not jacknife
+                                   select(regional_level, gamma_LR, gamma_LR_eH, gamma_LR_S_PIE,
+                                          ES_gamma, ES_gamma_eH, ES_gamma_S_PIE, database, dt, 
+                                          S_historical, S_modern, t1, t2),
                                  enc_regional_jknife_LR %>% 
                                    rename(ES_gamma = ES,
+                                          ES_gamma_eH = ES_eH,
+                                          ES_gamma_S_PIE = ES_S_PIE,
                                           dt = deltaT) %>% 
                                    mutate(database = 'Invertebrates', 
                                           regional_level = paste0('i_', region)) %>% 
-                                   select(regional_level, gamma_LR, ES_gamma, database, dt, S_historical, S_modern))
+                                   select(regional_level, gamma_LR, gamma_LR_eH, gamma_LR_S_PIE,
+                                          ES_gamma, ES_gamma_eH, ES_gamma_S_PIE, database, dt, 
+                                          S_historical, S_modern, t1, t2))
 
 
 save(local_LRR, regional_jknife_LRR, regional_LRR,

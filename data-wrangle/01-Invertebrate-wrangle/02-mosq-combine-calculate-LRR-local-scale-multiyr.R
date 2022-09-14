@@ -11,6 +11,10 @@ mosquito_jknife <- bind_rows(mosquito_jknife, study_jknife)
 rm(alpha_S, gamma_S, study_jknife)
 
 load('~/Dropbox/1current/spatial_composition_change/data/florida_clean.Rdata')
+# fix column names
+alpha_S <- alpha_S %>% 
+  rename(plot = region,
+         region = Locations)
 mosquito_alpha <- bind_rows(mosquito_alpha, alpha_S)
 mosquito_gamma <- bind_rows(mosquito_gamma, gamma_S)
 mosquito_jknife <- bind_rows(mosquito_jknife, study_jknife)
@@ -162,19 +166,27 @@ check_loc_regional %>%
 mosq_alphaS_multiyr <- bind_rows(multi_yr_dat1,
           multi_yr_dat2) %>% 
   group_by(region, plot, period) %>% 
-  summarise(S = mean(S)) %>% 
+  summarise(S = mean(S),
+            eH = mean(eH),
+            S_PIE = mean(S_PIE)) %>% 
   ungroup()
 
 # calculate log-ratio
 mosq_local_LR_multi <- left_join(mosq_alphaS_multiyr %>% 
                                    filter(period == 'first') %>% 
-                                   rename(S_historical = S) %>% 
+                                   rename(S_historical = S,
+                                          eH_historical = eH,
+                                          S_PIE_historical = S_PIE) %>% 
                                    select(-period),
                                  mosq_alphaS_multiyr %>% 
                                    filter(period == 'second') %>% 
-                                   rename(S_modern = S) %>% 
+                                   rename(S_modern = S,
+                                          eH_modern = eH,
+                                          S_PIE_modern = S_PIE) %>% 
                                    select(-period)) %>% 
-  mutate(alpha_LR = log(S_modern / S_historical))
+  mutate(alpha_LR = log(S_modern / S_historical),
+         alpha_LR_eH = log(eH_modern / eH_historical),
+         alpha_LR_S_PIE = log(S_PIE_modern / S_PIE_historical))
 
 # need to get these regions and plots from the raw data to calculate regional richness
 mosq_sites <- bind_rows(multi_yr_dat1 %>% 

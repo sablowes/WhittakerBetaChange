@@ -186,7 +186,7 @@ left_join(rs_filtered_2timeOnly %>%
 # visual inspection
 r <- rs_filtered_2timeOnly %>% distinct(regional_level) %>% pull()
 
-pdf('~/Dropbox/1current/spatial_composition_change/figures/data-visualisation/homog-db-sampling-check.pdf', width = 12, height = 9)
+pdf('~/Dropbox/1current/spatial_composition_change/figures/data-visualisation/homog-db-sampling-check-140922.pdf', width = 12, height = 9)
 
 for(i in 1:length(unique(rs_filtered_2timeOnly$regional_level))){
   print(paste('STUDY', i, 'of', length(unique(rs_filtered_2timeOnly$regional_level)), 'regions'))

@@ -283,7 +283,7 @@ all_meta <- bind_rows(bt_meta %>%
 
 # some tidying before merging and saving
 all_meta <- all_meta %>% 
-  mutate(taxon_mod = case_when((taxon=='amphibians'|taxon=='Amphibians'|taxon=='herpetofauna') ~ 'Herpetofauna',
+  mutate(taxon_mod = case_when((taxon=='amphibians'|taxon=='Amphibians'|taxon=='herpetofauna'|taxon=='Herpetofauna') ~ 'Herptiles',
                                taxon=='All' ~ 'Multiple taxa',
                                (taxon=='Marine invertebrates' | taxon=='Terrestrial invertebrates' | taxon=='Freshwater invertebrates') ~
                            'Invertebrates',
@@ -381,7 +381,7 @@ taxon_colour = c('Plants' = '#a6cee3',
                  'Fish' = '#1f78b4',
                  # 'Multiple taxa' = '#fdbf6f',
                  # 'Marine invertebrates/plants' = '#ff7f00',
-                 'Herpetofauna' = '#cab2d6')
+                 'Herptiles' = '#cab2d6')
 
 sample_type_count <- all_meta %>% 
   group_by(sample_type) %>% 
@@ -441,6 +441,6 @@ ggplot() +
          shape = guide_legend(title.position = 'top', title.hjust = 0.5, size = 3),
          size = guide_legend(title.position = 'top', title.hjust = 0.5))
 
-ggsave('~/Dropbox/1current/spatial_composition_change/presentations/iDiv-conference/map-taxa-sample-type-presentation.png',
-       width = 290, height = 200, units = 'mm')
+# ggsave('~/Dropbox/1current/spatial_composition_change/presentations/iDiv-conference/map-taxa-sample-type-presentation.png',
+#        width = 290, height = 200, units = 'mm')
 

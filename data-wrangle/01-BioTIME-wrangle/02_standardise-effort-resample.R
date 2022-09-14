@@ -5,6 +5,13 @@ library(tidyverse)
 
 load('~/Dropbox/1current/spatial_composition_change/data/bt-location-plot-approach.Rdata')
 
+# need to get abundance type columns so as to know what we are doing when use
+# relative abundance in new metrics
+count_type <- read_csv('~/Dropbox/BioTIMELatest/bioTIMEMetadataJune2021.csv') %>% 
+  distinct(STUDY_ID, ABUNDANCE_TYPE, BIOMASS_TYPE) %>% 
+  filter(STUDY_ID %in% unique(bt_filtered$STUDY_ID))
+
+
 bt_years_max_loc <- bt_years_max_loc %>% 
   unite(study_yr1, c(STUDY_ID, year1), remove = FALSE) %>% 
   unite(study_yr2, c(STUDY_ID, year2), remove = FALSE) 
@@ -48,8 +55,12 @@ raw_new <- bt_filtered_2timeOnly %>%
   unite(ObsEventID, c(STUDY_ID, loc_plot, YEAR), remove = F) %>%
   group_by(STUDY_ID, loc_plot, YEAR) %>% 
   mutate(sample_effort = n_distinct(ObsEventID)) %>% 
-  # rename abundance column
-  rename(N = sum.allrawdata.ABUNDANCE) %>% 
+  # get relative abundances columns
+  rename(N = sum.allrawdata.ABUNDANCE,
+         B = sum.allrawdata.BIOMASS) %>% 
+  # use biomass as relative abundance when data on individuals does not exist
+  mutate(N = case_when((N==0 & B > 0) ~ B,
+                       TRUE ~ as.numeric(N))) %>% 
   select(STUDY_ID, loc_plot, YEAR, sample_effort, GENUS_SPECIES, N) %>% 
   group_by(STUDY_ID, loc_plot, YEAR, sample_effort) %>% 
   nest(data = c(GENUS_SPECIES, N)) %>% 
@@ -63,19 +74,35 @@ raw_new %>%
   group_by(STUDY_ID, loc_plot) %>% 
   filter(sample_effort[fYear=='start'] != sample_effort[fYear=='end']) 
 
+# put the type of sample into the data
+raw_new <- left_join(raw_new,
+                     count_type)
+
 local_S <- raw_new %>% 
   mutate(S = map(data, ~n_distinct(.x$GENUS_SPECIES)),
-         S_PIE = map(data, ~vegan::diversity(.x$N, index = 'invsimpson')))
+         eH = ifelse(ABUNDANCE_TYPE!='Presence/Absence',
+                     map(data, ~exp(vegan::diversity(.x$N, index = 'shannon'))),
+                     NA),
+         S_PIE = ifelse(ABUNDANCE_TYPE!='Presence/Absence',
+                        map(data, ~vegan::diversity(.x$N, index = 'invsimpson')),
+                        NA))
 
 regional_S <- raw_new %>% 
   unnest(data) %>% 
-  group_by(STUDY_ID, fYear, GENUS_SPECIES) %>% 
+  group_by(STUDY_ID, fYear, ABUNDANCE_TYPE, GENUS_SPECIES) %>% 
   summarise(N = sum(N)) %>% 
   ungroup() %>% 
-  group_by(STUDY_ID, fYear) %>% 
+  group_by(STUDY_ID, fYear, ABUNDANCE_TYPE) %>% 
   summarise(S = n_distinct(GENUS_SPECIES),
-            S_PIE = vegan::diversity(N, index = 'invsimpson')) %>% 
+            eH = ifelse(ABUNDANCE_TYPE!='Presence/Absence',
+                        exp(vegan::diversity(N, index = 'shannon')),
+                        NA),
+            S_PIE = ifelse(ABUNDANCE_TYPE!='Presence/Absence',
+                           vegan::diversity(N, index = 'invsimpson'),
+                           NA)) %>% 
   ungroup() %>% 
+  # weird multirow output again?
+  distinct(STUDY_ID, fYear, .keep_all=TRUE) %>% 
   # put the YEAR back in for start and finish time points
   left_join(local_S %>% 
               distinct(STUDY_ID, fYear, YEAR))
@@ -83,10 +110,10 @@ regional_S <- raw_new %>%
 # visual sanity check
 left_join(local_S %>% 
             unnest(S) %>% 
-            select(-S_PIE) %>% 
+            select(-eH, -S_PIE) %>% 
             rename(local_S = S),
           regional_S %>% 
-            select(-S_PIE) %>% 
+            select(-eH, -S_PIE) %>% 
             rename(regional_S = S)) %>% #filter(local_S > regional_S)
   ggplot() +
   geom_point(aes(x = local_S, y = regional_S)) +
@@ -94,10 +121,10 @@ left_join(local_S %>%
 
 left_join(local_S %>% 
             unnest(S_PIE) %>% 
-            select(-S) %>% 
+            select(-S, -eH) %>% 
             rename(local_S_PIE = S_PIE),
           regional_S %>% 
-            select(-S) %>% 
+            select(-S, -eH) %>% 
             rename(regional_S_PIE = S_PIE)) %>% #filter(local_S > regional_S)
   ggplot() +
   geom_point(aes(x = local_S_PIE, y = regional_S_PIE)) +
@@ -131,24 +158,40 @@ for(i in 1:length(unique(prep$STUDY_ID))){
     start_temp = study_start %>% 
       slice(-j) %>% 
       unnest(data) %>% 
-      group_by(STUDY_ID, fYear, GENUS_SPECIES) %>% 
+      group_by(STUDY_ID, fYear, ABUNDANCE_TYPE, GENUS_SPECIES) %>% 
       summarise(N = sum(N)) %>% 
       ungroup() %>% 
-      group_by(STUDY_ID, fYear) %>% 
-      summarise(S_jk = n_distinct(GENUS_SPECIES),
-                S_PIE_jk = vegan::diversity(N, index = 'invsimpson')) %>% 
+      group_by(STUDY_ID, fYear, ABUNDANCE_TYPE) %>% 
+      summarise(S = n_distinct(GENUS_SPECIES),
+                eH = ifelse(ABUNDANCE_TYPE!='Presence/Absence',
+                            exp(vegan::diversity(N, index = 'shannon')),
+                            NA),
+                S_PIE = ifelse(ABUNDANCE_TYPE!='Presence/Absence',
+                               vegan::diversity(N, index = 'invsimpson'),
+                               NA)) %>% 
+      ungroup() %>% 
+      # weird multirow output again?
+      distinct(STUDY_ID, fYear, .keep_all=TRUE) %>% 
       ungroup() %>% 
       mutate(jacknife = j)
     
     end_temp = study_end %>% 
       slice(-j) %>% 
       unnest(data) %>% 
-      group_by(STUDY_ID, fYear, GENUS_SPECIES) %>% 
+      group_by(STUDY_ID, fYear, GENUS_SPECIES, ABUNDANCE_TYPE) %>% 
       summarise(N = sum(N)) %>% 
       ungroup() %>% 
-      group_by(STUDY_ID, fYear) %>% 
-      summarise(S_jk = n_distinct(GENUS_SPECIES),
-                S_PIE_jk = vegan::diversity(N, index = 'invsimpson')) %>% 
+      group_by(STUDY_ID, fYear, ABUNDANCE_TYPE) %>% 
+      summarise(S = n_distinct(GENUS_SPECIES),
+                eH = ifelse(ABUNDANCE_TYPE!='Presence/Absence',
+                            exp(vegan::diversity(N, index = 'shannon')),
+                            NA),
+                S_PIE = ifelse(ABUNDANCE_TYPE!='Presence/Absence',
+                               vegan::diversity(N, index = 'invsimpson'),
+                               NA)) %>% 
+      ungroup() %>% 
+      # weird multirow output again?
+      distinct(STUDY_ID, fYear, .keep_all=TRUE) %>% 
       ungroup() %>% 
       mutate(jacknife = j)
     
@@ -176,52 +219,60 @@ left_join(regional_S,
 
 # calculate local LR
 bt_local_LR <- left_join(local_S %>%
-                           unnest(c(S, S_PIE)) %>% 
+                           unnest(c(S, eH, S_PIE)) %>% 
                            filter(fYear=='start') %>% 
                            rename(S_historical = S,
+                                  eH_historical = eH,
                                   S_PIE_historical = S_PIE,
                                   t1 = YEAR) %>% 
                            select(-fYear, -sample_effort, -data),
                          local_S %>%
-                           unnest(c(S, S_PIE)) %>% 
+                           unnest(c(S, eH, S_PIE)) %>% 
                            filter(fYear=='end') %>% 
                            rename(S_modern = S,
+                                  eH_modern = eH,
                                   S_PIE_modern = S_PIE,
                                   t2 = YEAR) %>% 
                            select(-fYear, -sample_effort, -data)) %>% 
   mutate(alpha_LR = log(S_modern/S_historical),
+         alpha_LR_eH = log(eH_modern/eH_historical),
          alpha_LR_S_PIE = log(S_PIE_modern/S_PIE_historical),
          deltaT = t2 - t1 + 1,
          ES = alpha_LR / deltaT,
+         ES_eH = alpha_LR_eH / deltaT,
          ES_S_PIE = alpha_LR_S_PIE / deltaT)
 
 
-bt_local_mean_LR <- bt_local_LR %>% 
-  group_by(STUDY_ID) %>% 
-  summarise(alpha_LR_mu = mean(alpha_LR),
-            check = mean(log(S_modern/S_historical)),
-            alpha_LR_sd = sd(alpha_LR),
-            ES_mu = mean(ES),
-            ES_S_PIE_mu = mean(ES_S_PIE),
-            ES_se = sd(ES)/(sqrt(n_distinct(loc_plot)))) %>% 
-  ungroup()
+# bt_local_mean_LR <- bt_local_LR %>% 
+#   group_by(STUDY_ID) %>% 
+#   summarise(alpha_LR_mu = mean(alpha_LR),
+#             check = mean(log(S_modern/S_historical)),
+#             alpha_LR_sd = sd(alpha_LR),
+#             ES_mu = mean(ES),
+#             ES_S_PIE_mu = mean(ES_S_PIE),
+#             ES_se = sd(ES)/(sqrt(n_distinct(loc_plot)))) %>% 
+#   ungroup()
 
 bt_regional_LR <- left_join(regional_S %>% 
                               filter(fYear=='start') %>% 
                               rename(S_historical = S,
+                                     eH_historical = eH,
                                      S_PIE_historical = S_PIE,
                                      t1 = YEAR) %>% 
                               select(-fYear),
                             regional_S %>% 
                               filter(fYear=='end') %>% 
                               rename(S_modern = S,
+                                     eH_modern = eH,
                                      S_PIE_modern = S_PIE,
                                      t2 = YEAR) %>% 
                               select(-fYear)) %>% 
   mutate(gamma_LR = log(S_modern/S_historical),
+         gamma_LR_eH = log(eH_modern/eH_historical),
          gamma_LR_S_PIE = log(S_PIE_modern / S_PIE_historical),
          deltaT = t2 - t1 + 1,
          ES = gamma_LR / deltaT,
+         ES_eH = gamma_LR_eH / deltaT,
          ES_S_PIE = gamma_LR_S_PIE / deltaT)
 
 # calculate jacknife regional LR
@@ -232,46 +283,25 @@ bt_regional_jknife <- left_join(regional_jknife,
 
 bt_regional_jknife_LR <- left_join(bt_regional_jknife %>% 
                                   filter(fYear=='start') %>% 
-                                    rename(S_historical = S_jk,
-                                           S_PIE_historical = S_PIE_jk,
+                                    rename(S_historical = S,
+                                           eH_historical = eH,
+                                           S_PIE_historical = S_PIE,
                                            t1 = YEAR) %>% 
                                   select(-fYear),
                                   bt_regional_jknife %>% 
                                   filter(fYear=='end') %>% 
-                                  rename(S_modern = S_jk,
-                                         S_PIE_modern = S_PIE_jk,
+                                  rename(S_modern = S,
+                                         eH_modern = eH,
+                                         S_PIE_modern = S_PIE,
                                          t2 = YEAR) %>% 
                                   select(-fYear)) %>% 
   mutate(gamma_LR = log(S_modern/S_historical),
+         gamma_LR_eH = log(eH_modern/eH_historical),
          gamma_LR_S_PIE = log(S_PIE_modern / S_PIE_historical),
          deltaT = t2 - t1 + 1,
          ES = gamma_LR / deltaT,
+         ES_eH = gamma_LR_eH / deltaT,
          ES_S_PIE = gamma_LR_S_PIE / deltaT)
-
-ggplot() +
-  geom_point(data = left_join(bt_local_mean_LR, 
-                              bt_regional_LR),
-             aes(x = alpha_LR_mu, y = gamma_LR)) +
-  geom_abline(intercept = 0, slope = 1, lty = 2) +
-  geom_hline(yintercept = 0, lty = 2) +
-  geom_vline(xintercept = 0, lty = 2)
-
-# 
-ggplot() +
-  geom_point(data = left_join(bt_local_mean_LR, 
-                              bt_regional_LR),
-             aes(x = ES_mu, y = ES)) +
-  geom_abline(intercept = 0, slope = 1, lty = 2) +
-  geom_hline(yintercept = 0, lty = 2) +
-  geom_vline(xintercept = 0, lty = 2)
-
-ggplot() +
-  geom_point(data = left_join(bt_local_mean_LR, 
-                              bt_regional_LR),
-             aes(x = ES_S_PIE_mu, y = ES_S_PIE)) +
-  geom_abline(intercept = 0, slope = 1, lty = 2) +
-  geom_hline(yintercept = 0, lty = 2) +
-  geom_vline(xintercept = 0, lty = 2)
 
 ggplot() +
   geom_point(data = left_join(bt_regional_jknife_LR %>% 
@@ -286,7 +316,7 @@ ggplot() +
 
 
 save(bt_local_LR, 
-     bt_local_mean_LR,
+     # bt_local_mean_LR,
      bt_regional_LR,
      bt_regional_jknife_LR,
      bt_regional_jknife,

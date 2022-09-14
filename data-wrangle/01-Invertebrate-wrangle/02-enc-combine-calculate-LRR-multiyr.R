@@ -110,19 +110,27 @@ yr_check %>%
 enc_alpha_multiyr <- bind_rows(multi_yr_dat1,
                                multi_yr_dat2) %>% 
   group_by(region, site_loc, period) %>% 
-  summarise(S = mean(Sbar)) %>% 
+  summarise(S = mean(Sbar),
+            eH = mean(eHbar),
+            S_PIE = mean(S_PIEbar)) %>% 
   ungroup()
 
 # calculate local LR
 enc_local_LR_multiyr <- left_join(enc_alpha_multiyr %>%
                             filter(period=='first') %>% 
-                            rename(S_historical = S) %>% 
+                            rename(S_historical = S,
+                                   eH_historical = eH,
+                                   S_PIE_historical = S_PIE) %>% 
                             select(-period),
                           enc_alpha_multiyr %>%
                             filter(period=='second') %>% 
-                            rename(S_modern = S) %>% 
+                            rename(S_modern = S,
+                                   eH_modern = eH,
+                                   S_PIE_modern = S_PIE) %>% 
                             select(-period)) %>% 
-  mutate(alpha_LR = log(S_modern/S_historical))
+  mutate(alpha_LR = log(S_modern/S_historical),
+         alpha_LR_eH = log(eH_modern/eH_historical),
+         alpha_LR_S_PIE = log(S_PIE_modern/S_PIE_historical))
 
 # duration is the same as initial analyses
 load('~/Dropbox/1current/spatial_composition_change/results/allLRR_meta.Rdata')
@@ -154,7 +162,9 @@ enc_regional_jknife <- enc_allresamps %>%
   summarise(N = sum(N)) %>% 
   # calculate regional richness for each resample; retain the resamples to use in conjunction with jack-knife resamps
   group_by(region, year, resamp) %>% 
-  summarise(S = n_distinct(FIELDNAME)) %>% 
+  summarise(S = n_distinct(FIELDNAME),
+            eH = exp(vegan::diversity(N, index = 'shannon')),
+            S_PIE = vegan::diversity(N, index = 'invsimpson')) %>% 
   ungroup()
 
 # put med-yr in, define periods 
@@ -193,21 +203,31 @@ rm(enc_regional_jknife)
 enc_regional_jknife_multiyr <- bind_rows(enc_regional_jknife_p1,
                                          enc_regional_jknife_p2) %>% 
   group_by(region, resamp, period) %>% 
-  summarise(S_jk = median(S)) %>% 
+  summarise(S_jk = median(S),
+            eH_jk = median(eH),
+            S_PIE_jk = median(S_PIE)) %>% 
   ungroup()
 
 
 enc_regional_jknife_LR_multiyr <- left_join(enc_regional_jknife_multiyr %>% 
                                       filter(period=='first') %>% 
-                                      rename(S_historical = S_jk) %>% 
+                                      rename(S_historical = S_jk,
+                                             eH_historical = eH_jk,
+                                             S_PIE_historical = S_PIE_jk) %>% 
                                       select(-period),
                                       enc_regional_jknife_multiyr %>% 
                                       filter(period=='second') %>% 
-                                      rename(S_modern = S_jk) %>% 
+                                      rename(S_modern = S_jk,
+                                             eH_modern = eH_jk,
+                                             S_PIE_modern = S_PIE_jk) %>% 
                                       select(-period)) %>% 
   mutate(gamma_LR = log(S_modern/S_historical),
+         gamma_LR_eH = log(eH_modern/eH_historical),
+         gamma_LR_S_PIE = log(S_PIE_modern/S_PIE_historical),
          deltaT = 14,
-         ES = gamma_LR / deltaT)
+         ES = gamma_LR / deltaT,
+         ES_eH = gamma_LR_eH / deltaT,
+         ES_S_PIE = gamma_LR_S_PIE / deltaT)
 
 
 # reduce the number of resamples to a jacknife size (i.e., nLocations - 1) 
@@ -219,11 +239,15 @@ n_loc <- enc_alpha %>%
 enc_regional_jknife_LR_multiyr <- left_join(enc_regional_jknife_LR_multiyr,
                                     n_loc) %>% 
   group_by(region, nLocations) %>% 
-  nest(data = c(S_historical, S_modern, gamma_LR, deltaT, ES)) %>% 
-  sample_n(size = nLocations) %>% 
+  nest(data = c(resamp, S_historical, S_modern, eH_historical, eH_modern,
+                S_PIE_historical, S_PIE_modern, gamma_LR, gamma_LR_eH, 
+                gamma_LR_S_PIE, deltaT, ES, ES_eH, ES_S_PIE)) %>% 
+  mutate(subsample = map2(data, nLocations, ~slice_sample(.x, n = .y))) %>% 
   ungroup() %>% 
-  unnest(data) %>% 
-  rename(jacknife = resamp)
+  unnest(subsample) %>% 
+  group_by(region) %>% 
+  mutate(jacknife = 1:n()) %>% 
+  select(-resamp)
 
 
 save(enc_local_LR_multiyr,

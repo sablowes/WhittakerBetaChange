@@ -94,15 +94,23 @@ combine_local_resamps %>%
 gamma_S <- combine_local_resamps %>% 
   unnest(data) %>% 
   # first get the richness for each region in each year for each resample
+  group_by(region, yr_i, period, resample, Species) %>% 
+  summarise(N = sum(N)) %>% 
   group_by(region, yr_i, period, resample) %>% 
-  summarise(S_resamp = n_distinct(Species)) %>% 
+  summarise(S_resamp = n_distinct(Species),
+            eH_resamp = exp(vegan::diversity(N, index = 'shannon')),
+            S_PIE_resamp = vegan::diversity(N, index = 'invsimpson')) %>% 
   ungroup() %>% 
   # now want to average richness over all the resamples
   group_by(region, yr_i, period) %>% 
-  summarise(Syr = median(S_resamp)) %>% 
+  summarise(Syr = median(S_resamp),
+            eHyr = median(eH_resamp),
+            S_PIEyr = median(S_PIE_resamp)) %>% 
   # now want richness per period
   group_by(region, period) %>% 
-  summarise(S = median(Syr)) %>% 
+  summarise(S = median(Syr),
+            eH = median(eHyr),
+            S_PIE = median(S_PIEyr)) %>% 
   ungroup() 
 
 # also want regional jack knife resample
@@ -147,22 +155,34 @@ for(r in 1:length(unique(combine_local_resamps$region))){
       start_temp = p1_yr_i_allplots %>% 
         slice(-n) %>% 
         unnest(data) %>% 
+        group_by(region, yr_i, period, resample, Species) %>% 
+        summarise(N = sum(N)) %>% 
         group_by(region, yr_i, period, resample) %>% 
-        summarise(S_resamp = n_distinct(Species)) %>% 
+        summarise(S_resamp = n_distinct(Species),
+                  eH_resamp = exp(vegan::diversity(N, index = 'shannon')),
+                  S_PIE_resamp = vegan::diversity(N, index = 'invsimpson')) %>% 
         ungroup() %>% 
         group_by(region, period, yr_i) %>% 
-        summarise(S_jk = round(median(S_resamp))) %>% 
+        summarise(S_jk = round(median(S_resamp)),
+                  eH_jk = median(eH_resamp),
+                  S_PIE_jk = median(S_PIE_resamp)) %>% 
         ungroup() %>% 
         mutate(jacknife = n)
       
       end_temp = p2_yr_i_allplots %>%
         slice(-n) %>% 
         unnest(data) %>% 
+        group_by(region, yr_i, period, resample, Species) %>% 
+        summarise(N = sum(N)) %>% 
         group_by(region, yr_i, period, resample) %>% 
-        summarise(S_resamp = n_distinct(Species)) %>% 
+        summarise(S_resamp = n_distinct(Species),
+                  eH_resamp = exp(vegan::diversity(N, index = 'shannon')),
+                  S_PIE_resamp = vegan::diversity(N, index = 'invsimpson')) %>% 
         ungroup() %>% 
         group_by(region, period, yr_i) %>% 
-        summarise(S_jk = round(median(S_resamp))) %>% 
+        summarise(S_jk = round(median(S_resamp)),
+                  eH_jk = median(eH_resamp),
+                  S_PIE_jk = median(S_PIE_resamp)) %>%  
         ungroup() %>% 
         mutate(jacknife = n)
       
@@ -184,18 +204,26 @@ for(r in 1:length(unique(combine_local_resamps$region))){
 # now want to average for each period
 mosq_regional_jknife <- regional_jknife_allyrs %>% 
   group_by(region, period, jacknife, n_loc_plots) %>% 
-  summarise(S = median(S_jk)) %>% 
+  summarise(S = median(S_jk),
+            eH = median(eH_jk),
+            S_PIE = median(S_PIE_jk)) %>% 
   ungroup()
 
 mosq_regional_jknife_LR_multi <- left_join(mosq_regional_jknife %>% 
                                        filter(period=='first') %>% 
-                                       rename(S_historical = S) %>% 
+                                       rename(S_historical = S,
+                                              eH_historical = eH,
+                                              S_PIE_historical = S_PIE) %>% 
                                        select(-period),
                                      mosq_regional_jknife %>% 
                                        filter(period=='second') %>% 
-                                       rename(S_modern = S) %>% 
+                                       rename(S_modern = S,
+                                              eH_modern = eH,
+                                              S_PIE_modern = S_PIE) %>% 
                                        select(-period)) %>% 
-  mutate(gamma_LR = log(S_modern / S_historical))
+  mutate(gamma_LR = log(S_modern / S_historical),
+         gamma_LR_eH = log(eH_modern / eH_historical),
+         gamma_LR_S_PIE = log(S_PIE_modern / S_PIE_historical))
 
 # get duration information
 load('~/Dropbox/1current/spatial_composition_change/results/mosquito_LRR.Rdata')

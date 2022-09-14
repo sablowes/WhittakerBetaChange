@@ -82,10 +82,17 @@ filtered_2timeOnly <- filtered_2timeOnly %>%
 
 # want to know number of species at each location for first and last observation in each region
 alpha <- filtered_2timeOnly %>%
-  group_by(dataset_id, fyear, regional, local) %>% 
-  summarise(S = n_distinct(species),
-            year = unique(year)) %>% 
-  ungroup() 
+  group_by(dataset_id, fyear, regional, local, metric) %>% 
+  dplyr::summarise(S = n_distinct(species),
+            eH = ifelse(metric!='pa', exp(vegan::diversity(value, index = 'shannon')),
+                        NA),
+            S_PIE = ifelse(metric!='pa', vegan::diversity(value, index = 'invsimpson'),
+                           NA),
+            year = unique(year)
+            ) %>% 
+  ungroup() %>% 
+  # something weird (14/09/22): grouping not reducing to one row per group
+  distinct(dataset_id, regional, local, fyear, year, metric, .keep_all = TRUE)
 
 # split into first and last (we need these in separate columns)
 # omit intermediate observations for now
@@ -93,21 +100,28 @@ homog_local_LR <- left_join(
   alpha %>% 
     filter(fyear=='start') %>% 
     rename(S_historical = S,
+           eH_historical = eH,
+           S_PIE_historical = S_PIE,
            t1 = year) %>% 
     select(-fyear),
   alpha %>% 
     filter(fyear=='end') %>% 
     rename(S_modern = S,
+           eH_modern = eH,
+           S_PIE_modern = S_PIE,
            t2 = year) %>% 
     select(-fyear),
-  by = c('dataset_id', 'regional', 'local')
-) %>% 
+  by = c('dataset_id', 'regional', 'local', 'metric')) %>% 
   # remove locations where we don't have two samples
   filter(!is.na(S_modern) & !is.na(S_historical)) %>% 
   mutate(alpha_LR = log(S_modern / S_historical),
+         alpha_LR_eH = log(eH_modern / eH_historical),
+         alpha_LR_S_PIE = log(S_PIE_modern / S_PIE_historical),
          alpha_natural = S_modern - S_historical,
          dt = t2 - t1 + 1,
-         ES = alpha_LR / dt) %>% 
+         ES = alpha_LR / dt,
+         ES_eH = alpha_LR_eH / dt,
+         ES_S_PIE = alpha_LR_S_PIE / dt) %>% 
   group_by(dataset_id, regional) %>% 
   mutate(nLocations = n_distinct(local)) %>% 
   ungroup() %>% 
@@ -121,8 +135,10 @@ data_filter <- homog_local_LR %>%
   unite(filter, c(dataset_id, regional, local)) %>% 
   distinct(filter)
 
-# calculate regional S for the two time periods
-regional <- filtered_2timeOnly %>% 
+# calculate regional S for the two time periods (need to do this separately
+# for the relative abundance metrics)
+regional_pa <- filtered_2timeOnly %>% 
+  filter(metric=='pa') %>% 
   unite(filter, c(dataset_id, regional, local), remove = FALSE) %>% 
   filter(filter %in% data_filter$filter) %>% 
   select(-filter) %>% 
@@ -131,31 +147,70 @@ regional <- filtered_2timeOnly %>%
             year = unique(year)) %>% 
   ungroup()
 
+regional_sad <- filtered_2timeOnly %>% 
+  filter(metric!='pa') %>% 
+  unite(filter, c(dataset_id, regional, local), remove = FALSE) %>% 
+  filter(filter %in% data_filter$filter) %>% 
+  select(-filter) %>% 
+  group_by(dataset_id, fyear, regional, species) %>% 
+  summarise(N = sum(value),
+            year = unique(year)) %>% 
+  group_by(dataset_id, fyear, regional) %>% 
+  summarise(S = n_distinct(species),
+            eH = exp(vegan::diversity(N, index = 'shannon')),
+            S_PIE = vegan::diversity(N, index = 'invsimpson'),
+            year = unique(year)) %>% 
+  ungroup()
+  
+# check no duplicates were created
+id1 <- regional_pa %>% 
+  distinct(dataset_id, regional) %>% 
+  unite(id1, c(dataset_id, regional))
+id2 <- regional_sad %>% 
+  distinct(dataset_id, regional) %>% 
+  unite(id2, c(dataset_id, regional))
+
+sum(id1$id1 %in% id2$id2)
+sum(id2$id2 %in% id1$id1)
+
+# put em back together
+regional <- bind_rows(regional_pa,
+                      regional_sad)
+
+
 homog_regional_LR <- left_join(
   regional %>% 
     filter(fyear=='start') %>% 
     rename(S_historical = S,
+           eH_historical = eH,
+           S_PIE_historical = S_PIE,
            t1 = year) %>% 
     select(-fyear),
   regional %>% 
     filter(fyear=='end') %>% 
     rename(S_modern = S,
+           eH_modern = eH,
+           S_PIE_modern = S_PIE,
            t2 = year) %>% 
     select(-fyear),
   by = c('dataset_id', 'regional')
 ) %>% 
   mutate(regional_LR = log(S_modern / S_historical),
+         regional_LR_eH = log(eH_modern / eH_historical),
+         regional_LR_S_PIE = log(S_PIE_modern / S_PIE_historical),
          dt = t2 - t1 + 1,
-         ES = regional_LR / dt)
+         ES = regional_LR / dt,
+         ES_eH = regional_LR_eH / dt,
+         ES_S_PIE = regional_LR_S_PIE / dt)
 
 # jacknife regional estimates
 prep_regional <- filtered_2timeOnly %>% 
   unite(filter, c(dataset_id, regional, local), remove = FALSE) %>% 
   filter(filter %in% data_filter$filter) %>% 
   select(-filter) %>% 
-  select(dataset_id, fyear, regional, local, species) %>% 
-  group_by(dataset_id, fyear, regional, local) %>% 
-  nest(data = c(species)) %>% 
+  select(dataset_id, fyear, regional, local, metric, species, value) %>% 
+  group_by(dataset_id, fyear, regional, local, metric) %>% 
+  nest(data = c(species, value)) %>% 
   ungroup() %>% 
   # add number of locations
   group_by(dataset_id, fyear, regional) %>% 
@@ -186,18 +241,31 @@ for(i in 1:length(unique(prep_regional$new_region))){
     start_temp = study_start %>% 
       slice(-j) %>% 
       unnest(data) %>% 
-      group_by(dataset_id, regional, fyear) %>% 
-      summarise(S_jk = n_distinct(species)) %>% 
+      group_by(dataset_id, regional, fyear, metric, species) %>% 
+      summarise(N = sum(value)) %>% 
       ungroup() %>% 
-      mutate(jacknife = j)
+      group_by(dataset_id, regional, fyear) %>% 
+      summarise(S_jk = n_distinct(species),
+                eH_jk = ifelse(metric!='pa', exp(vegan::diversity(N, index = 'shannon')), NA),
+                S_PIE = ifelse(metric!='pa', vegan::diversity(N, index = 'invsimpson'), NA)) %>% 
+      ungroup() %>% 
+      mutate(jacknife = j) %>% 
+      # summarise not working as expected (multirow output, when one expected)
+      distinct(dataset_id, regional, fyear, jacknife, .keep_all = TRUE)
     
     end_temp = study_end %>% 
       slice(-j) %>% 
       unnest(data) %>% 
+      group_by(dataset_id, regional, fyear, metric, species) %>% 
+      summarise(N = sum(value)) %>% 
       group_by(dataset_id, regional, fyear) %>% 
-      summarise(S_jk = n_distinct(species)) %>% 
+      summarise(S_jk = n_distinct(species),
+                eH_jk = ifelse(metric!='pa', exp(vegan::diversity(N, index = 'shannon')), NA),
+                S_PIE = ifelse(metric!='pa', vegan::diversity(N, index = 'invsimpson'), NA)) %>% 
       ungroup() %>% 
-      mutate(jacknife = j)
+      mutate(jacknife = j) %>% 
+      # summarise not working as expected
+      distinct(dataset_id, regional, fyear, jacknife, .keep_all = TRUE)
     
     # join
     region_jknife = bind_rows(region_jknife, 
@@ -229,17 +297,25 @@ homog_regional_jknife <- left_join(homog_regional_jknife,
 homog_regional_jknife_LR <- left_join(homog_regional_jknife %>% 
                                         filter(fyear=='start') %>% 
                                         rename(S_historical = S_jk,
+                                               eH_historical = eH_jk,
+                                               S_PIE_historical = S_PIE,
                                                t1 = year) %>% 
                                         select(-fyear),
                                       homog_regional_jknife %>% 
                                         filter(fyear=='end') %>% 
                                         rename(S_modern = S_jk,
+                                               eH_modern = eH_jk,
+                                               S_PIE_modern = S_PIE,
                                                t2 = year) %>% 
                                         select(-fyear)
 ) %>% 
   mutate(regional_LR = log(S_modern / S_historical),
+         regional_LR_eH = log(eH_modern / eH_historical),
+         regional_LR_S_PIE = log(S_PIE_modern / S_PIE_historical),
          dt = t2 - t1 + 1,
-         ES = regional_LR / dt)
+         ES = regional_LR / dt,
+         ES_eH = regional_LR_eH / dt,
+         ES_S_PIE = regional_LR_S_PIE / dt)
 
 # need to tidy up the names in the homogenisation regional column (they blow up post-processing models),
 homog_regional_level <- homog_local_LR %>% 
