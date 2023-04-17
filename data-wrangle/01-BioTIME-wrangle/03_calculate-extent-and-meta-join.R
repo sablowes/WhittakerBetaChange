@@ -19,9 +19,12 @@ bt_sf <- bt_local_LR %>%
   summarise(geometry = st_combine(geometry)) %>% 
   ungroup()
 
+# todo use spherical geometry
+sf_use_s2(use_s2 = FALSE)
+
 # calculate the convex hulls for these studies and apply the
 bt_extent_hull <- bt_sf %>% 
-  st_wrap_dateline(options = c("WRAPDATELINE=YES")) %>% 
+  # st_wrap_dateline(options = c("WRAPDATELINE=YES")) %>% 
   st_convex_hull() 
   
 
@@ -114,7 +117,8 @@ for(i in 1:length(unique(bt_extent$STUDY_ID))){
   print(paste('STUDY', i, 'of', length(unique(bt_extent$STUDY_ID)), 'studies'))
     
     dat = bt_extent %>%
-    filter(STUDY_ID==unique(bt_extent$STUDY_ID)[i])
+    filter(STUDY_ID==unique(bt_extent$STUDY_ID)[i]) %>% 
+      st_as_sf()
     
     if(dat$STUDY_ID==163){dat$geometry = bt_extent_hull_s163$geometry}
   

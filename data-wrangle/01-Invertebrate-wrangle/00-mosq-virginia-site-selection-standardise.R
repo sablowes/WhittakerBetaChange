@@ -172,12 +172,14 @@ alpha_S <- local_resamps %>%
   group_by(plot, year, resample) %>% 
   summarise(S_resamp = n_distinct(Species),
             eH_resamp = exp(vegan::diversity(N, index = 'shannon')),
-            S_PIE_resamp = vegan::diversity(N, index = 'invsimpson')) %>% 
+            S_PIE_resamp = vegan::diversity(N, index = 'invsimpson'),
+            J_resamp = sum(N)) %>% 
   ungroup() %>% 
   group_by(plot, year) %>% 
   summarise(S = median(S_resamp),
             eH = median(eH_resamp),
-            S_PIE = median(S_PIE_resamp)) %>% 
+            S_PIE = median(S_PIE_resamp),
+            J = median(J_resamp)) %>% 
   mutate(region = 'virginia')
 
 gamma_S <- local_resamps %>% 
@@ -186,12 +188,14 @@ gamma_S <- local_resamps %>%
   group_by(year, resample) %>% 
   summarise(S_resamp = n_distinct(Species),
             eH_resamp = exp(vegan::diversity(N, index = 'shannon')),
-            S_PIE_resamp = vegan::diversity(N, index = 'invsimpson')) %>% 
+            S_PIE_resamp = vegan::diversity(N, index = 'invsimpson'),
+            J_resamp = sum(N)) %>% 
   ungroup() %>% 
   group_by(year) %>% 
   summarise(S = median(S_resamp),
             eH = median(eH_resamp),
-            S_PIE = median(S_PIE_resamp)) %>% 
+            S_PIE = median(S_PIE_resamp),
+            J = median(J_resamp)) %>% 
   ungroup() %>% 
   mutate(region = 'virginia')
 
@@ -220,12 +224,14 @@ for(j in 1:n_plots){
     group_by(year, resample) %>% 
     summarise(S_resamp = n_distinct(Species),
               eH_resamp = exp(vegan::diversity(N, index = 'shannon')),
-              S_PIE_resamp = vegan::diversity(N, index = 'invsimpson')) %>% 
+              S_PIE_resamp = vegan::diversity(N, index = 'invsimpson'),
+              J_resamp = sum(N)) %>% 
     ungroup() %>% 
     group_by(year) %>% 
     summarise(S_jk = round(median(S_resamp)),
               eH_jk = median(eH_resamp),
-              S_PIE_jk = median(S_PIE_resamp)) %>% 
+              S_PIE_jk = median(S_PIE_resamp),
+              J_jk = median(J_resamp)) %>% 
     ungroup() %>% 
     mutate(region = 'virginia',
            jacknife = j)
@@ -241,12 +247,14 @@ for(j in 1:n_plots){
     group_by(year, resample) %>% 
     summarise(S_resamp = n_distinct(Species),
               eH_resamp = exp(vegan::diversity(N, index = 'shannon')),
-              S_PIE_resamp = vegan::diversity(N, index = 'invsimpson')) %>% 
+              S_PIE_resamp = vegan::diversity(N, index = 'invsimpson'),
+              J_resamp = sum(N)) %>% 
     ungroup() %>% 
     group_by(year) %>% 
     summarise(S_jk = round(median(S_resamp)),
               eH_jk = median(eH_resamp),
-              S_PIE_jk = median(S_PIE_resamp)) %>% 
+              S_PIE_jk = median(S_PIE_resamp),
+              J_jk = median(J_resamp)) %>% 
     ungroup() %>% 
     mutate(region = 'virginia',
            jacknife = j)

@@ -14,7 +14,8 @@ load('~/Dropbox/1current/spatial_composition_change/results/invert_LRR.Rdata')
 load('~/Dropbox/1current/spatial_composition_change/results/mosquito_LRR.Rdata')
 load('~/Dropbox/1current/spatial_composition_change/results/enc_LRR.Rdata')
 
-homog_meta <- read_csv('~/Dropbox/BioTimeX/Local-Regional Homogenization/_data_extraction/metadata.csv')
+resurvey_meta <- read_csv('~/Dropbox/BioTimeX/Local-Regional Homogenization/_data_extraction/metacommunity-survey-metadata.csv')
+checklist_meta <- read_csv('~/Dropbox/BioTimeX/Local-Regional Homogenization/_data_extraction/checklist_change_metadata.csv')
 rft_meta <- read_csv('~/Dropbox/1current/data/RivFishTime/1873_10_1873_2_RivFishTIME_TimeseriesTable.csv') %>% 
   select(-X13)
 invert_meta <- read_csv('~/Dropbox/1current/spatial_composition_change/data/Insect Metacommunities Metadata.csv')
@@ -25,6 +26,11 @@ invert_meta <- read_csv('~/Dropbox/1current/spatial_composition_change/data/Inse
 homog_regional_level <- homog_local_LR %>% 
   distinct(dataset_id, regional) %>% 
   mutate(regional_level = as.character(1:n()))
+
+# there are some duplicates between Roel's data and the data that Alban has compiled
+dupes <- c('countryside_survey_plants_2017_England', 'magnuson_2020_North Temperate Lakes', 
+           'schuch_2011_Lower Saxony', 'valtonen_2018_Hungary')
+
 
 
 load('~/Dropbox/1current/spatial_composition_change/results/bt_extent.Rdata')
@@ -39,7 +45,8 @@ bt_meta <- bt_extent %>%
          grain_km2 = GRAIN_SQ_KM,
          gamma_extent_km2 = extent_km2,
          longitude = centroid_X,
-         latitude = centroid_Y)
+         latitude = centroid_Y) %>% 
+  select(-geometry)
 
 load('~/Dropbox/1current/spatial_composition_change/results/rft_extent.Rdata')
 
@@ -68,14 +75,26 @@ loc_filter <- homog_local_LR %>%
   distinct(location_filter)
 
 # join with regional labels
-homog_meta <- left_join(homog_meta,
-                        homog_regional_level) %>% 
+homog_meta <- bind_rows(resurvey_meta %>% 
+                          mutate(effort = as.character(effort)),
+                        checklist_meta)
+
+# join with regional labels
+homog_meta2 <- left_join(homog_meta,
+                         homog_regional_level) %>% 
+  # throw out unused data
+  filter(!is.na(regional_level)) %>% 
   # create sample_type covariate
-  mutate(sample_type = ifelse(study_type=='checklist', study_type,
-                              ifelse(study_type!='checklist', 'resurvey', study_type)))
+  mutate(sample_type = ifelse(is.na(study_type), 'checklist', 'resurvey'))
+
+# reduce to years, sites of interest
+reg_loc <- homog_local_LR %>% 
+  unite(reg_loc, c(dataset_id, regional, local), remove = F) %>% 
+  distinct(reg_loc)
+
 
 # need to calculate centroid for plotting regions as a single point
-homog_centroid <- homog_meta %>% 
+homog_centroid <- homog_meta2 %>% 
   filter(!is.na(regional_level)) %>% 
   distinct(dataset_id, regional, regional_level, longitude, latitude) %>% 
   # still have a few coords to get
@@ -92,9 +111,12 @@ homog_centroid <- homog_meta %>%
          latitude = st_coordinates(.)[,'Y'])
 
 # reduce to essentials before joining
-homog_meta2 <- homog_meta %>% 
+homog_meta2 <- homog_meta2 %>% 
   filter(!is.na(regional_level)) %>% 
   distinct(dataset_id, regional, regional_level, sample_type, realm, taxon) %>% 
+  unite(dsreg, c(dataset_id, regional), remove = F) %>% 
+  filter(!dsreg %in% dupes) %>% 
+  select(-dsreg) %>% 
   mutate(database = 'Homogenisation',
          realm = ifelse(realm=='freshwater', 'Freshwater',
                         ifelse(realm=='marine', 'Marine', 'Terrestrial'))) %>% 
@@ -152,7 +174,9 @@ all_locations <- bind_rows(bt_local_LR %>%
                              rename(Longitude = longitude,
                                     Latitude = latitude) %>% 
                              left_join(bt_meta %>% 
-                                         select(STUDY_ID, taxon, realm, sample_type)) %>% 
+                                         select(STUDY_ID, taxon, realm, sample_type) %>% 
+                                         as_tibble() %>% 
+                                         select(-geometry)) %>% 
                              select(-STUDY_ID) %>% 
                              mutate(database='BioTIME'),
                            rft_local_LR %>% 
@@ -164,7 +188,7 @@ all_locations <- bind_rows(bt_local_LR %>%
                                          mutate(SourceID=as.numeric(SourceID))) %>% 
                              select(-SourceID, -TimeSeriesID) %>% 
                              mutate(database = 'RivFishTime'),
-                           homog_meta %>% 
+                           homog_meta2 %>% 
                              unite(location_filter, c(dataset_id, regional), remove = FALSE) %>% 
                              filter(location_filter %in% loc_filter$location_filter) %>% 
                              distinct(realm, taxon, sample_type, longitude, latitude) %>% 
@@ -224,37 +248,35 @@ all_locations <- all_locations %>%
 
 # make dggrid version
 dgg <- dgconstruct(res=6)
-dginfo(dgg)
+# dginfo(dgg)
 ##	get the corresponding grid cells for all observations
 all_locations <- all_locations %>% 
-  filter(!is.na(Longitude)) %>% 
   mutate(cell = dgGEO_to_SEQNUM(dggs = dgg, in_lon_deg = Longitude, in_lat_deg = Latitude)$seqnum)
 
 cell_count <- all_locations %>% 
   group_by(cell) %>% 
   summarise(count = n())
 
-grid <- dgcellstogrid(dgg,
-                      all_locations$cell,
-                      frame=TRUE,
-                      wrapcells=TRUE) %>% 
+grid <- dgcellstogrid(dggs = dgg,
+                      cells = all_locations$cell) %>% 
   left_join(cell_count %>% 
-              mutate(cell = as.character(cell)), 
-            by = 'cell') %>% 
-  as_tibble()
+              mutate(seqnum = as.numeric(cell)), 
+            by = 'seqnum') %>% 
+  st_make_valid()
 
 # prelim map
 world <- map_data('world')
 
 # locations_cell_map <- 
 ggplot() + 
-  geom_polygon(data=world, 
+  geom_polygon(data=world,
                aes(long, lat, group = group), colour='black', fill='#ffffff', size=0.25) +
-  geom_polygon(data=grid,
-               aes(x=long, y=lat, group=group, fill=count), alpha = 0.9) +
-  geom_path(data=grid,
-               aes(x=long, y=lat, group=group), alpha=0.4, color="white") +
-  coord_map('mollweide', ylim = c(-80, 90), xlim = c(-180, 180)) +
+  geom_sf(data=grid,
+               aes(geometry = geometry, fill=count), alpha = 0.9) +
+  geom_sf(data=grid,
+               aes(geometry = geometry), alpha=0.4, color="white") +
+  # coord_map('mollweide', ylim = c(-80, 90), xlim = c(-180, 180)) +
+  coord_sf(ylim = c(-80, 90)) +
   scale_x_continuous(name = 'Longitude', breaks = seq(-180, 180, by = 30)) +
   scale_y_continuous(name = 'Latitude', breaks = c( -23.5, 23.5, -35, 35, -60, 60)) +
   scale_fill_distiller(name = 'Number of locations',

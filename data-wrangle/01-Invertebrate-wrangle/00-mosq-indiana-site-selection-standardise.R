@@ -1,4 +1,3 @@
-# iowa as one metacommunity
 rm(list=ls()) 
 
 defaultW <- getOption("warn")
@@ -6,57 +5,64 @@ options(warn = -1)
 
 library(tidyverse)
 
-# data
-iowa <- readRDS('~/Dropbox/1current/spatial_composition_change/data/iowa.rds') %>% 
+indiana <- readRDS('~/Dropbox/1current/spatial_composition_change/data/Indiana 2021.rds') %>% 
   as_tibble()
 
-# many locations
-ggplot() +
-  facet_wrap(~Locations) +
-  geom_point(data = iowa %>% distinct(Locations, Longitudes, Latitudes), 
-             aes(x = Longitudes, y = Latitudes))
+# one locations
+indiana %>% distinct(Locations)
 
 # use long-lat to creat 'plot'
-iowa <- iowa %>% 
+indiana <- indiana %>% 
   unite(col = plot, c(Longitudes, Latitudes), remove = FALSE)
 
-# there are a bunch of different attractants: can we lump carbon dioxide, visible light with visible light? No, says Dr van Klink
-iowa %>% 
+ggplot() +
+  facet_wrap(~Locations) +
+  geom_point(data = indiana %>% distinct(Locations, Longitudes, Latitudes),
+             aes(x = Longitudes, y = Latitudes))
+
+# there are a bunch of different attractants: can we lump carbon dioxide, visible light with visible light
+indiana %>% 
   group_by(Attractants) %>% 
   summarise(n = n())
 
-# use visible light; reduce to locations with > 4 locations
-iowa4_vl <- iowa %>% 
+# one attractant only
+indiana_vl <- indiana %>% 
   filter(Attractants=='visible light')
 
 # one collection protocol
-iowa4_vl %>% distinct(Collection.protocols)
+indiana_vl %>% distinct(Collection.protocols)
 
 #  collection duration: one day for the visible light data
-iowa4_vl %>% distinct(Collection.duration..days.)
+indiana_vl %>% distinct(Collection.duration..days.)
+indiana_vl %>% 
+  group_by(Collection.duration..days.) %>% 
+  summarise(n())
+
+indiana_vl <- indiana_vl %>% 
+  filter(Collection.duration..days.==1)
 
 # tidy dates
-iowa4_vl$date <- as.Date(substring(iowa4_vl$Collection.date.range, 1,10))
-iowa4_vl$year<- as.numeric(substring(iowa4_vl$Collection.date.range, 1,4))
-iowa4_vl$month <- as.numeric(substring(iowa4_vl$Collection.date.range, 6,7))
+indiana_vl$date <- as.Date(substring(indiana_vl$Collection.date.range, 1,10))
+indiana_vl$year<- as.numeric(substring(indiana_vl$Collection.date.range, 1,4))
+indiana_vl$month <- as.numeric(substring(indiana_vl$Collection.date.range, 6,7))
 
 # location and duration metadata to determine which plots for analysis
-iowa_meta <- iowa4_vl %>% 
+indiana_meta <- indiana_vl %>% 
   group_by(plot) %>% 
   summarise(duration = max(year) - min(year) + 1)
 
-iowa_10 <- iowa_meta %>% 
+indiana_10 <- indiana_meta %>% 
   filter(duration > 9)
 
-iowa10 <- iowa4_vl %>% 
-  filter(plot %in% iowa_10$plot) 
+indiana10 <- indiana_vl %>% 
+  filter(plot %in% indiana_10$plot)
 
 # have multiple days and months sampled within each year
-count_months <- iowa10 %>% 
+count_months <- indiana10 %>% 
   group_by(plot, year) %>% 
   summarise(n_month = n_distinct(month))
 
-count_days <- iowa10 %>% 
+count_days <- indiana10 %>% 
   group_by(plot, year, month) %>% 
   summarise(n_days = n_distinct(date))
 
@@ -66,10 +72,11 @@ ggplot() +
   geom_density(data = count_days,
                aes(x = n_days))
 
-# visual inspection to identify years and plots for each region
+
+# we get full duration using 20 days in month nine
 ggplot() +
   facet_wrap(~plot) +
-  geom_point(data = count_days %>% filter(n_days > 19),
+  geom_point(data = count_days %>% filter(n_days > 5),
              aes(x = year, y = month, colour = n_days)) +
   theme(legend.position = 'none')
 
@@ -78,43 +85,37 @@ ggplot() +
 ggplot() +
   facet_wrap(~plot) +
   geom_point(data = count_days %>% 
-               filter(n_days > 19) %>% 
+               filter(n_days > 5) %>% 
                # look at different durations to maximise number of sites (and months to combine)
-               filter(year > 1992 & year < 2004) %>% 
-               # reduce to months 6-9, and create filter
-               filter(month > 5 & month < 9) %>% 
-               filter(plot!='-90.63_41.49' & plot!='-90.66_42.47' & plot!='-91.58_42.09' &
-                        plot!='-92.31_42.46' & plot!='-93.58_41.54' & plot!='-93.66_41.64' &
-                        plot!='-95.88_41.21' & plot!='-96.34_42.29' & plot!='-96.35_42.43'),
+               filter(year > 2008 ) %>% 
+               filter(month> 5 & month < 9),
              aes(x = year, y = month, colour = n_days)) +
   theme(legend.position = 'none')
 
-iowa_sites <- count_days %>% 
-  filter(n_days > 19) %>% 
-  filter(year > 1992 & year < 2004) %>% 
-  # reduce to months 6-8, and create filter
-  filter(month > 5 & month < 9) %>% 
-  # remove plots that are missing samples in first and/or last years
-  filter(plot!='-90.63_41.49' & plot!='-90.66_42.47' & plot!='-91.58_42.09' &
-           plot!='-92.31_42.46' & plot!='-93.58_41.54' & plot!='-93.66_41.64' &
-           plot!='-95.88_41.21' & plot!='-96.34_42.29' & plot!='-96.35_42.43') %>% 
+
+
+indiana_sites <- count_days %>% 
+  filter(n_days > 5) %>% 
+  # look at different durations to maximise number of sites (and months to combine)
+  filter(year > 2008 ) %>% 
+  filter(month> 5 & month < 9) %>% 
   unite(filter, c(plot, year, month), remove = FALSE)
 
 # need min number of days sampled (want same effort at all sites)
-min_days <- iowa_sites %>% 
+min_days <- indiana_sites %>% 
   ungroup() %>% 
   summarise(min_days = min(n_days))
 
-iowa_filtered <- iowa10 %>% 
+indiana_filtered <- indiana10 %>% 
   unite(pym, c(plot, year, month), remove = FALSE) %>% 
-  filter(pym %in% iowa_sites$filter)
+  filter(pym %in% indiana_sites$filter)
 
-iowa_filtered$min_days = min_days$min_days
+indiana_filtered$min_days = min_days$min_days
 
 # want to combine min_days from months 6-9 for each plot / year combination
 local_resamps <- NULL
 
-iowa_nest <- iowa_filtered %>% 
+indiana_nest <- indiana_filtered %>% 
   select(plot, date, year, month, Species, Specimens.collected, min_days) %>% 
   group_by(plot) %>% 
   nest(data = c(date, year, month, Species, Specimens.collected, min_days)) %>% 
@@ -123,11 +124,11 @@ iowa_nest <- iowa_filtered %>%
 # suppress summarise statement (so counter is visible)
 options(dplyr.summarise.inform = FALSE)
 
-for(p in 1:n_distinct(iowa_nest$plot)){
+for(p in 1:n_distinct(indiana_nest$plot)){
   # combine min_days from months 6-9 for each plot / year combination 
-  plot = iowa_nest %>% 
+  plot = indiana_nest %>% 
     slice(p) %>% 
-    unnest(cols = c(data))
+    unnest()
   
   # time counter
   time = unique(plot$year)
@@ -141,7 +142,7 @@ for(p in 1:n_distinct(iowa_nest$plot)){
     
     # get min_days from each month 200 times
     for(resamps in 1:200){
-      print(paste('resample ', resamps, ' of 200, for year', t, ' of ', length(time), 'in plot', p, 'of ', n_distinct(iowa_nest$plot)))
+      print(paste('resample ', resamps, ' of 200, for year', t, ' of ', length(time), 'in plot', p, 'of ', n_distinct(indiana_nest$plot)))
       
       samp = plot_t %>% 
         group_by(month) %>% 
@@ -162,7 +163,6 @@ for(p in 1:n_distinct(iowa_nest$plot)){
   }
 }
 
-
 alpha_S <- local_resamps %>% 
   group_by(plot, year, resample) %>% 
   summarise(S_resamp = n_distinct(Species),
@@ -176,7 +176,7 @@ alpha_S <- local_resamps %>%
             S_PIE = median(S_PIE_resamp),
             J = median(J_resamp)) %>% 
   ungroup() %>% 
-  mutate(region = 'iowa')
+  mutate(region = 'indiana')
 
 gamma_S <- local_resamps %>% 
   group_by(year, resample, Species) %>% 
@@ -193,7 +193,7 @@ gamma_S <- local_resamps %>%
             S_PIE = median(S_PIE_resamp),
             J = median(J_resamp)) %>% 
   ungroup() %>% 
-  mutate(region = 'iowa')
+  mutate(region = 'indiana')
 
 # also want regional jack knife resample
 regional_jknife <- NULL
@@ -215,8 +215,6 @@ for(j in 1:n_plots){
     ungroup() %>% 
     slice(-j) %>% 
     unnest(data) %>% 
-    group_by(year, resample, Species) %>% 
-    summarise(N = sum(N)) %>% 
     group_by(year, resample) %>% 
     summarise(S_resamp = n_distinct(Species),
               eH_resamp = exp(vegan::diversity(N, index = 'shannon')),
@@ -228,7 +226,8 @@ for(j in 1:n_plots){
               eH_jk = median(eH_resamp),
               S_PIE_jk = median(S_PIE_resamp),
               J_jk = median(J_resamp)) %>% 
-    mutate(region = 'iowacago',
+    ungroup() %>%
+    mutate(region = 'indiana',
            jacknife = j)
   
   end_temp = study_end %>% 
@@ -237,8 +236,6 @@ for(j in 1:n_plots){
     ungroup() %>% 
     slice(-j) %>% 
     unnest(data) %>% 
-    group_by(year, resample, Species) %>% 
-    summarise(N = sum(N)) %>% 
     group_by(year, resample) %>% 
     summarise(S_resamp = n_distinct(Species),
               eH_resamp = exp(vegan::diversity(N, index = 'shannon')),
@@ -250,7 +247,8 @@ for(j in 1:n_plots){
               eH_jk = median(eH_resamp),
               S_PIE_jk = median(S_PIE_resamp),
               J_jk = median(J_resamp)) %>% 
-    mutate(region = 'iowacago',
+    ungroup() %>%
+    mutate(region = 'indiana',
            jacknife = j)
   
   # join
@@ -262,11 +260,11 @@ for(j in 1:n_plots){
 
 
 study_jknife <- study_jknife %>% 
-  mutate(fYear = case_when(year==1993 ~ 'start',
-                           year==2003 ~ 'end'))
+  mutate(fYear = case_when(year==2009 ~ 'start',
+                           year==2019 ~ 'end'))
 
 save(local_resamps, alpha_S, gamma_S, study_jknife,
-     file = '~/Dropbox/1current/spatial_composition_change/data/iowa_clean.Rdata')
+     file = '~/Dropbox/1current/spatial_composition_change/code/invertebrate_data/clean_data/indiana_clean.Rdata')
 
 options(warn = defaultW)
 

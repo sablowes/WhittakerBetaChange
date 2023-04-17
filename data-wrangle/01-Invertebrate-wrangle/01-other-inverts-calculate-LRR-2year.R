@@ -253,48 +253,6 @@ invert_regional_jknife_LR <- left_join(invert_regional_jknife %>%
          ES_eH = gamma_LR_eH / deltaT,
          ES_S_PIE = gamma_LR_S_PIE / deltaT)
 
-ggplot() +
-  geom_point(data = left_join(invert_local_mean_LR, 
-                              invert_regional_LR),
-             aes(x = alpha_LR_mu, y = gamma_LR)) +
-  geom_abline(intercept = 0, slope = 1, lty = 2) +
-  geom_hline(yintercept = 0, lty = 2) +
-  geom_vline(xintercept = 0, lty = 2)
-
-# 
-ggplot() +
-  geom_point(data = left_join(invert_local_mean_LR, 
-                              invert_regional_LR),
-             aes(x = ES_mu, y = ES)) +
-  geom_abline(intercept = 0, slope = 1, lty = 2) +
-  geom_hline(yintercept = 0, lty = 2) +
-  geom_vline(xintercept = 0, lty = 2)
-
-ggplot() +
-  geom_point(data = invert_local_mean_LR,
-             aes(x = alpha_LR_mu, y = ES_mu)) +
-  geom_abline(intercept = 0, slope = 1, lty = 2) +
-  geom_hline(yintercept = 0, lty = 2) +
-  geom_vline(xintercept = 0, lty = 2)
-
-ggplot() +
-  geom_point(data = invert_regional_LR,
-             aes(x = gamma_LR, y = ES)) +
-  geom_abline(intercept = 0, slope = 1, lty = 2) +
-  geom_hline(yintercept = 0, lty = 2) +
-  geom_vline(xintercept = 0, lty = 2)
-
-ggplot() +
-  geom_point(data = left_join(invert_regional_jknife_LR %>% 
-                                group_by(Datasource_ID) %>% 
-                                summarise(mean_jk_LR = mean(ES)), 
-                              invert_regional_LR),
-             aes(x = mean_jk_LR, y = ES)) +
-  geom_abline(intercept = 0, slope = 1, lty = 2) +
-  geom_hline(yintercept = 0, lty = 2) +
-  geom_vline(xintercept = 0, lty = 2)
-
-
 
 save(invert_local_LR, 
      # invert_local_mean_LR,

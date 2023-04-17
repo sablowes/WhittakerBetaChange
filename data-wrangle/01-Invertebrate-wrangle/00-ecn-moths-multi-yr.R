@@ -129,11 +129,13 @@ localS <- all_resamps %>%
   group_by(site_loc, year, resamp) %>% 
   summarise(S = n_distinct(FIELDNAME),
             eH = exp(vegan::diversity(N, index = 'shannon')),
-            S_PIE = vegan::diversity(N, index = 'invsimpson')) %>% 
+            S_PIE = vegan::diversity(N, index = 'invsimpson'),
+            J = sum(N)) %>% 
   group_by(site_loc, year) %>% 
   summarise(Sbar = median(S),
             eHbar = median(eH),
-            S_PIEbar = median(S_PIE)) %>% 
+            S_PIEbar = median(S_PIE),
+            Jbar = median(J)) %>% 
   ungroup()
 
 regionalS_allresamps <- all_resamps %>% 
@@ -144,14 +146,16 @@ regionalS_allresamps <- all_resamps %>%
   group_by(year, resamp) %>% 
   summarise(S = n_distinct(FIELDNAME),
             eH = exp(vegan::diversity(N, index = 'shannon')),
-            S_PIE = vegan::diversity(N, index = 'invsimpson')) %>% 
+            S_PIE = vegan::diversity(N, index = 'invsimpson'),
+            J = sum(N)) %>% 
   ungroup()
 
 regionalS <- regionalS_allresamps %>% 
   group_by(year) %>% 
   summarise(S = median(S),
             eH = median(eH),
-            S_PIE = median(S_PIE))
+            S_PIE = median(S_PIE),
+            J = median(J))
 
 # rename all_resamps, we need these to calculate regional estimate for multiyr analysis
 enc_moths_resamps <- all_resamps %>% 

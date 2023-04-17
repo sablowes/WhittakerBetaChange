@@ -9,14 +9,14 @@ florida <- readRDS('~/Dropbox/1current/spatial_composition_change/data/Florida 2
   as_tibble()
 
 # many locations
-florida %>% distinct(Locations)
+# florida %>% distinct(Locations)
+# 
+# ggplot() +
+#   facet_wrap(~Locations) +
+#   geom_point(data = florida %>% distinct(Locations, Longitudes, Latitudes), 
+#              aes(x = Longitudes, y = Latitudes))
 
-ggplot() +
-  facet_wrap(~Locations) +
-  geom_point(data = florida %>% distinct(Locations, Longitudes, Latitudes), 
-             aes(x = Longitudes, y = Latitudes))
-
-# use long-lat to creat 'plot'
+# use long-lat to create 'plot'
 florida <- florida %>% 
   unite(col = plot, c(Longitudes, Latitudes), remove = FALSE)
 
@@ -27,9 +27,9 @@ loc4 <- florida %>%
   filter(n_plots > 3)
 
 # there are a bunch of different attractants: can we lump carbon dioxide, visible light with visible light
-florida %>% 
-  group_by(Attractants) %>% 
-  summarise(n = n())
+# florida %>%
+#   group_by(Attractants) %>%
+#   summarise(n = n())
 
 # use visible light; reduce to locations with > 4 locations
 florida4_vl <- florida %>% 
@@ -37,10 +37,10 @@ florida4_vl <- florida %>%
   filter(Locations %in% loc4$Locations)
 
 # one collection protocol
-florida4_vl %>% distinct(Collection.protocols)
-florida4_vl %>%
-  group_by(Collection.protocols) %>% 
-  summarise(n())
+# florida4_vl %>% distinct(Collection.protocols)
+# florida4_vl %>%
+#   group_by(Collection.protocols) %>% 
+#   summarise(n())
 
 florida4_vl <- florida4_vl %>% 
   filter(Collection.protocols=='CDC light trap')
@@ -228,12 +228,14 @@ alpha_S <- local_resamps %>%
   group_by(Locations, plot, year, resample) %>% 
   summarise(S_resamp = n_distinct(Species),
             eH_resamp = exp(vegan::diversity(N, index = 'shannon')),
-            S_PIE_resamp = vegan::diversity(N, index = 'invsimpson')) %>% 
+            S_PIE_resamp = vegan::diversity(N, index = 'invsimpson'),
+            J_resamp = sum(N)) %>% 
   ungroup() %>% 
   group_by(Locations, plot, year) %>% 
   summarise(S = median(S_resamp),
             eH = median(eH_resamp),
-            S_PIE = median(S_PIE_resamp)) %>% 
+            S_PIE = median(S_PIE_resamp),
+            J = median(J_resamp)) %>% 
   ungroup() %>% 
   rename(region = plot)
 
@@ -243,12 +245,14 @@ gamma_S <- local_resamps %>%
   group_by(Locations, resample, year) %>% 
   summarise(S_resamp = n_distinct(Species),
             eH_resamp = exp(vegan::diversity(N, index = 'shannon')),
-            S_PIE_resamp = vegan::diversity(N, index = 'invsimpson')) %>% 
+            S_PIE_resamp = vegan::diversity(N, index = 'invsimpson'),
+            J_resamp = sum(N)) %>% 
   ungroup() %>% 
   group_by(Locations, year) %>% 
   summarise(S = median(S_resamp),
             eH = median(eH_resamp),
-            S_PIE = median(S_PIE_resamp)) %>% 
+            S_PIE = median(S_PIE_resamp),
+            J = median(J_resamp)) %>% 
   ungroup() %>% 
   rename(region = Locations)
 
@@ -288,12 +292,14 @@ for(r in 1:n_region){
       group_by(year, resample) %>% 
       summarise(S_resamp = n_distinct(Species),
                 eH_resamp = exp(vegan::diversity(N, index = 'shannon')),
-                S_PIE_resamp = vegan::diversity(N, index = 'invsimpson')) %>% 
+                S_PIE_resamp = vegan::diversity(N, index = 'invsimpson'),
+                J_resamp = sum(N)) %>% 
       ungroup() %>% 
       group_by(year) %>% 
       summarise(S_jk = round(median(S_resamp)),
                 eH_jk = median(eH_resamp),
-                S_PIE_jk = median(S_PIE_resamp)) %>% 
+                S_PIE_jk = median(S_PIE_resamp),
+                J_jk = median(J_resamp)) %>% 
       ungroup() %>% 
       mutate(region = unique(region$Locations),
              jacknife = j)
@@ -309,12 +315,14 @@ for(r in 1:n_region){
       group_by(year, resample) %>% 
       summarise(S_resamp = n_distinct(Species),
                 eH_resamp = exp(vegan::diversity(N, index = 'shannon')),
-                S_PIE_resamp = vegan::diversity(N, index = 'invsimpson')) %>% 
+                S_PIE_resamp = vegan::diversity(N, index = 'invsimpson'),
+                J_resamp = sum(N)) %>% 
       ungroup() %>% 
       group_by(year) %>% 
       summarise(S_jk = round(median(S_resamp)),
                 eH_jk = median(eH_resamp),
-                S_PIE_jk = median(S_PIE_resamp)) %>% 
+                S_PIE_jk = median(S_PIE_resamp),
+                J_jk = median(J_resamp)) %>% 
       ungroup() %>% 
       mutate(region = unique(region$Locations),
              jacknife = j)

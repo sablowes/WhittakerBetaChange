@@ -4,7 +4,6 @@
 library(tidyverse)
 
 load('~/Dropbox/1current/spatial_composition_change/data/rft_filtered_4s_10y_sameQ.Rdata')
-ft_filtered
 
 # calculate local richness 
 local_richness <- ft_filtered %>% 
