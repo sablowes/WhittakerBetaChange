@@ -95,6 +95,22 @@ sigma_regional_CI <- regional_ES_jk_norm_sigma2$data %>%
          )
   )
 
+local_checklist_label = c("Checklist",
+                          paste("beta[logdt] == ",
+                                round(sigma_model_summary$.value_alpha_b_sigma_logdt, 2),
+                                "~(", round(sigma_model_summary$.lower_alpha_b_sigma_logdt, 2),
+                                "~-~", round(sigma_model_summary$.upper_alpha_b_sigma_logdt, 2),
+                                ")"))
+local_resurvey_label = c("Resurvey",
+                          paste("beta[logdt] == ",
+                                round(sigma_model_summary$.value_alpha_b_sigma_logdt +
+                                        sigma_model_summary$`.value_alpha_b_sigma_sample_typeresurvey:logdt`, 2),
+                                "~(", round(sigma_model_summary$.lower_alpha_b_sigma_logdt +
+                                             sigma_model_summary$`.lower_alpha_b_sigma_sample_typeresurvey:logdt`, 2),
+                                "~-~", round(sigma_model_summary$.upper_alpha_b_sigma_logdt +
+                                               sigma_model_summary$`.upper_alpha_b_sigma_sample_typeresurvey:logdt`, 2),
+                                ")"))
+
 sigma_local <- ggplot() +
     geom_segment(data = sigma_model_summary, 
                  aes(x = min_dt_checklist,
@@ -122,17 +138,40 @@ sigma_local <- ggplot() +
               aes(x = dt,
                   ymin = Q05, ymax = Q95, group = sample_type),
               alpha = 0.33) +
+  # add regression coefficient and uncertainty interval
+  annotate('text', x = 120, y = c(0.005, 0.005*0.8), hjust = 0.1, vjust = 1.4,
+           label = local_checklist_label,
+           parse = T, size = 2) +
+  annotate('text', x = 10, y = c(0.01, 0.01*0.8), hjust = 0.1, vjust = 1.4,
+           label = local_resurvey_label,
+           parse = T, size = 2) +
   scale_x_continuous(trans = 'log', name = 'Duration [years, log-scale]',
                      labels = scales::number_format(accuracy = 1)) +
   scale_y_continuous(trans = 'log', name = expression(paste('log(', sigma, ')')),
                      labels = scales::number_format(accuracy = 0.001)) +
   scale_linetype_manual(name = 'Sample type',
-                          values = c('Checklist' = 1,
+                        values = c('Checklist' = 1,
                                      'Resurvey' = 2)) +
   labs(subtitle = expression(paste(alpha, '-scale'))) +
   theme_minimal() +
   theme(legend.position = c(0.9, 0.9),
         legend.justification = c(1,1))
+
+regional_checklist_label = c("Checklist",
+                          paste("beta[logdt] == ",
+                                round(sigma_model_summary$.value_gamma_b_sigma_logdt, 2),
+                                "~(", round(sigma_model_summary$.lower_gamma_b_sigma_logdt, 2),
+                                "~-~", round(sigma_model_summary$.upper_gamma_b_sigma_logdt, 2),
+                                ")"))
+regional_resurvey_label = c("Resurvey",
+                         paste("beta[logdt] == ",
+                               round(sigma_model_summary$.value_gamma_b_sigma_logdt +
+                                       sigma_model_summary$`.value_gamma_b_sigma_sample_typeresurvey:logdt`, 2),
+                               "~(", round(sigma_model_summary$.lower_gamma_b_sigma_logdt +
+                                             sigma_model_summary$`.lower_gamma_b_sigma_sample_typeresurvey:logdt`, 2),
+                               "~-~", round(sigma_model_summary$.upper_gamma_b_sigma_logdt +
+                                              sigma_model_summary$`.upper_gamma_b_sigma_sample_typeresurvey:logdt`, 2),
+                               ")"))
 
                      
 sigma_regional <- ggplot() +
@@ -162,6 +201,13 @@ sigma_regional <- ggplot() +
               aes(x = dt,
                   ymin = Q05, ymax = Q95, group = sample_type),
               alpha = 0.33) +
+  # add regression coefficient and uncertainty interval
+  annotate('text', x = 120, y = c(0.0001, 0.0001*0.8), hjust = 0.1, vjust = 1.4,
+           label = regional_checklist_label,
+           parse = T, size = 2) +
+  annotate('text', x = 10, y = c(0.08, 0.08*0.8), hjust = 0.1, vjust = 1.4,
+           label = regional_resurvey_label,
+           parse = T, size = 2) +
   scale_x_continuous(trans = 'log', name = 'Duration [years, log-scale]',
                      labels = scales::number_format(accuracy = 1)) +
   scale_y_continuous(trans = 'log', name = expression(paste('log(', sigma, ')')),
@@ -178,5 +224,5 @@ cowplot::plot_grid(sigma_local,
                    sigma_regional, 
                    labels = c('a', 'b'))
 
-ggsave('~/Dropbox/1current/spatial_composition_change/figures/results/FigSx-sigma-model-result.pdf',
+ggsave('~/Dropbox/1current/spatial_composition_change/figures/results/FigS4.pdf',
        width = 185, height = 100, units = 'mm')
