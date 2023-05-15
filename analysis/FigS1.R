@@ -1,5 +1,5 @@
 
-# prelim map
+# simple map
 world <- map_data('world')
 
 # taxon group colour scheme

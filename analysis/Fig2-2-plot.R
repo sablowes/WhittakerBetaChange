@@ -7,21 +7,17 @@ concept_colour = c('Gain low occupancy' = '#61CDE0',
                    'High occupancy replace low' = '#E9AE27',
                    'Gain high occupancy' = '#D9D956',
                    # for points that fall on the boundary
-                   'NA' = '#ffffff')
+                   'NA' = '#f0f0f0')
 
 # counts of observed homogenisation and differentiation (no change is where empirical delta-alpha==delta-regional==0)
 pattern_summary %>% 
-  # filter((r05 > local_mu.hat & r95 < local_mu.hat) | (l05 > regional_mu.hat | l95 < regional_mu.hat)) %>%
+  # count of homogenisation, differentiation, boundary cases
   group_by(spatial_pattern_obs) %>% 
   summarise(n = n()) %>% 
   ungroup() 
 
-# Some regions (n = 6) fall on boundary of categories:
-# we could use model predictions to determine the colour for these regions in figure 2a
-# pattern_summary <- pattern_summary %>% #filter(is.na(concept_obs))
-#   mutate(concept_obs_plot = case_when(is.na(concept_obs) ~ concept,
-#                                       !is.na(concept_obs) ~ concept_obs))
-
+# Some regions (n = 5) fall on boundary of categories, colour these points
+# grey
 
 full_concept <-
   ggplot() +
