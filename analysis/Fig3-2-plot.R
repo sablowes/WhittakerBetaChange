@@ -40,20 +40,23 @@ order_q_beta <-
   geom_vline(xintercept = 0, lty = 2, colour = '#bdbdbd') +
   scale_fill_manual(name = 'Diversity order',
                     values = c('q = 0' = '#424242',
-                               'q = 1' = '#8e8e8e',
+                               # 'q = 1' = '#8e8e8e',
                                'q = 2' = '#e2e2e2')) +
   scale_colour_manual(name = 'Diversity order',
                     values = c('q = 0' = '#424242',
-                               'q = 1' = '#8e8e8e',
+                               # 'q = 1' = '#8e8e8e',
                                'q = 2' = '#e2e2e2')) +
   scale_shape_manual(name = 'Diversity order',
                      values = c('q = 0' = 15,
-                                'q = 1' = 19,
+                                # 'q = 1' = 19,
                                 'q = 2' = 17)) +
+  scale_x_continuous(breaks = c(-0.005, -0.0025, 0, 0.0025, 0.005, 0.00750),
+                     labels = c(-0.005, '', 0, '', 0.005, '')) +
   labs(x = expression(paste(Delta, beta, ' - diversity . ', year^-1)),
        y = '') +
   theme_minimal() +
-  theme(legend.position = 'none', #c(0.1,0.9),
+  theme(legend.position = c(0.9,0.9),
+        legend.title = element_blank(),
         axis.text.y = element_blank(),
         plot.background = element_rect(fill = 'white', color = 'white'),
         panel.grid = element_blank(),
@@ -147,7 +150,7 @@ ggplot() +
   theme_minimal() +
   theme(plot.background = element_rect(fill = 'white', color = 'white', linetype = 0),
         panel.grid = element_blank(),
-        axis.text = element_text(size = 8)) 
+        axis.text = element_text(size = 9)) 
 
 # horizontal legend for top of figure
 hleg <- ggplot() + 
@@ -175,6 +178,7 @@ hleg <- ggplot() +
         legend.position = 'top', 
         legend.key = element_blank()) +
   guides(colour = guide_legend(alpha = 0.35))
+
 source('~/Dropbox/1current/R_random/functions/gg_legend.R')
 legend <- gg_legend(hleg)
 

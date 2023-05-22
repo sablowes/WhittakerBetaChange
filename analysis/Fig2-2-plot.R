@@ -1,4 +1,4 @@
-source('~/Dropbox/1current/spatial_composition_change/WhittakerBetaChange/analysis/Fig2i-wrangle.R')
+source('~/Dropbox/1current/spatial_composition_change/WhittakerBetaChange/analysis/Fig2-1-wrangle.R')
 
 concept_colour = c('Gain low occupancy' = '#61CDE0',
                    'Low occupancy replace high' = '#2CABA4',
@@ -131,16 +131,12 @@ y_density <- ggplot() +
 combine1 <- insert_xaxis_grob(full_concept, x_density, position = "top")
 combine2 <- insert_yaxis_grob(combine1, y_density, position = "right")
 
-# looks wonky
+# combine components
 fig3a <- ggdraw() +
   draw_plot(combine2) +
   draw_image('~/Dropbox/1current/spatial_composition_change/figures/for-publication/concept_only_inset_white.png',
              x = -0.25, y = 0.2, 
              scale = 0.275) 
-
-# but saves to file ok
-# ggsave('~/Dropbox/1current/spatial_composition_change/figures/main_result.png',
-#        width = 120, height = 100, units = 'mm')
 
 dist2line = function(x, y, a = 1, b = -1){
   # calculate distance from line: ax + by + c 
@@ -214,16 +210,13 @@ regional_d <- bind_cols(local_posterior_ES %>%
 alpha_forest <- ggplot() +
   geom_linerange(data = pattern_summary,
                  aes(xmin = l05, xmax = l95, 
-                     y = fct_reorder(regional_level, local_mu.hat), 
-                     colour = concept,
-                     alpha = sample_type)) +
+                     y = fct_reorder(regional_level, local_mu.hat)),
+                 alpha = 0.3) +
   geom_point(data = pattern_summary,
              aes(x = local_mu.hat, 
                  y = fct_reorder(regional_level, local_mu.hat), 
-                 colour = concept,
-                 fill = concept,
-                 shape = sample_type,
-                 alpha = sample_type),
+                 shape = sample_type),
+             alpha = 0.5,
              colour = 'black') +
   geom_vline(xintercept = 0, lty = 2) +
   geom_vline(data = local_overall_post,
@@ -233,11 +226,6 @@ alpha_forest <- ggplot() +
             alpha = 0.3) +
   scale_color_manual(guide = 'none', values = concept_colour) +
   scale_fill_manual(guide = 'none', values = concept_colour) +
-  scale_alpha_manual(guide = 'none',
-                     name = 'Sample type',
-                     values = c('checklist' = 1,
-                                'resurvey' = 0.3
-                     )) +
   scale_shape_manual(guide = 'none',
                      name = 'Sample type', values = c('checklist' = 24,
                                                       'resurvey' = 21)) +
@@ -249,26 +237,23 @@ alpha_forest <- ggplot() +
   theme(axis.text.y = element_blank(),
         # axis.title.y = element_blank(),
         axis.ticks.y = element_blank(),
-        plot.subtitle = element_text(hjust = 0.5),
-        plot.margin = margin(l = 2), 
+        plot.subtitle = element_text(size = 12, hjust = 0.38),
+        plot.margin = margin(t = 4, l = 2), 
         panel.grid = element_blank(),
         panel.background = element_blank())
 
 
 gamma_forest <- ggplot() +
-  geom_point(data = pattern_summary,
-             aes(x = regional_mu.hat, 
-                 y = fct_reorder(regional_level, local_mu.hat), 
-                 colour = concept,
-                 fill = concept,
-                 shape = sample_type,
-                 alpha = sample_type),
-             colour = 'black') +
   geom_linerange(data = pattern_summary,
                  aes(xmin = r05, xmax = r95, 
-                     y = fct_reorder(regional_level, local_mu.hat), 
-                     colour = concept,
-                     alpha = sample_type)) +
+                     y = fct_reorder(regional_level, local_mu.hat)),
+                 alpha = 0.3) +
+  geom_point(data = pattern_summary,
+             aes(x = regional_mu.hat, 
+                 y = fct_reorder(regional_level, local_mu.hat),
+                 shape = sample_type),
+             colour = 'black',
+             alpha = 0.5) +
   geom_vline(xintercept = 0, lty = 2) +
   geom_vline(data = regional_overall_post,
              aes(xintercept = .value)) +
@@ -277,11 +262,6 @@ gamma_forest <- ggplot() +
             alpha = 0.3) +
   scale_color_manual(guide = 'none', values = concept_colour) +
   scale_fill_manual(guide = 'none', values = concept_colour) +
-  scale_alpha_manual(guide = 'none',
-                     name = 'Sample type',
-                     values = c('checklist' = 1,
-                                'resurvey' = 0.3
-                     )) +
   scale_shape_manual(guide = 'none',
                      name = 'Sample type', values = c('checklist' = 24,
                                                       'resurvey' = 21)) +
@@ -292,8 +272,8 @@ gamma_forest <- ggplot() +
   theme(axis.text.y = element_blank(),
         axis.title.y = element_blank(),
         axis.ticks.y = element_blank(),
-        plot.subtitle = element_text(hjust = 0.55),
-        plot.margin = margin(r = 2),
+        plot.subtitle = element_text(size = 12, hjust = 0.5),
+        plot.margin = margin(t = 4, r = 2),
         panel.grid = element_blank(),
         panel.background = element_blank())
 
@@ -317,17 +297,14 @@ regional_d_summary <- regional_d %>%
 beta_forest <- ggplot() +
   geom_linerange(data = regional_d_summary,
                  aes(xmin = lower, xmax = upper, 
-                     y = fct_reorder(regional_level, local_mu.hat), 
-                     colour = concept,
-                     alpha = sample_type)) +
+                     y = fct_reorder(regional_level, local_mu.hat)),
+                 alpha = 0.3) +
   geom_point(data = regional_d_summary,
              aes(x = d_mu, 
-                 y = fct_reorder(regional_level, local_mu.hat), 
-                 colour = concept,
-                 fill = concept,
-                 shape = sample_type,
-                 alpha = sample_type
-             ), colour = 'black') +
+                 y = fct_reorder(regional_level, local_mu.hat),
+                 shape = sample_type), 
+             alpha = 0.5, 
+             colour = 'black') +
   geom_vline(xintercept = 0, lty = 2) +
   geom_vline(data = overall_d,
              aes(xintercept = mean(d))) +
@@ -353,8 +330,8 @@ beta_forest <- ggplot() +
   theme(axis.text.y = element_blank(),
         axis.title.y = element_blank(),
         axis.ticks.y = element_blank(),
-        plot.subtitle = element_text(hjust = 0.52),
-        plot.margin = margin(r = 2),
+        plot.subtitle = element_text(size = 12, hjust = 0.6),
+        plot.margin = margin(t = 4, r = 10),
         panel.grid = element_blank(),
         panel.background = element_blank())
 
