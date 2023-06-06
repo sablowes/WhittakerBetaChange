@@ -91,7 +91,7 @@ full_concept <-
         panel.grid = element_line(size = 0.5),
         panel.grid.minor = element_line(size = 0.5),
         axis.text = element_text(size = 12),
-        axis.title = element_text(size = 12))
+        axis.title = element_text(size = 14))
 
 x_density <- ggplot() +
   geom_density(data = pattern_summary %>% filter(local_mu.i < 0.1),
@@ -179,7 +179,7 @@ ggplot() +
         axis.line.x = element_line(colour = 'black'),
         axis.ticks.x = element_line(colour = 'black'),
         axis.text = element_text(size = 12),
-        axis.title = element_text(size = 12),
+        axis.title = element_text(size = 14),
         plot.margin = unit(c(2,4,2,2), units = 'mm'))
 
 
@@ -237,7 +237,10 @@ alpha_forest <- ggplot() +
   theme(axis.text.y = element_blank(),
         # axis.title.y = element_blank(),
         axis.ticks.y = element_blank(),
-        plot.subtitle = element_text(size = 12, hjust = 0.38),
+        plot.subtitle = element_text(size = 14, hjust = 0.38),
+        axis.text.x = element_text(size = 12),
+        axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
         plot.margin = margin(t = 4, l = 2), 
         panel.grid = element_blank(),
         panel.background = element_blank())
@@ -270,9 +273,11 @@ gamma_forest <- ggplot() +
   coord_cartesian(clip = 'off') +
   theme_minimal() +
   theme(axis.text.y = element_blank(),
+        axis.text.x = element_text(size = 12),
+        axis.title.x = element_text(size = 14),
         axis.title.y = element_blank(),
         axis.ticks.y = element_blank(),
-        plot.subtitle = element_text(size = 12, hjust = 0.5),
+        plot.subtitle = element_text(size = 14, hjust = 0.5),
         plot.margin = margin(t = 4, r = 2),
         panel.grid = element_blank(),
         panel.background = element_blank())
@@ -328,9 +333,11 @@ beta_forest <- ggplot() +
   coord_cartesian(clip = 'off') +
   theme_minimal() +
   theme(axis.text.y = element_blank(),
+        axis.text.x = element_text(size = 12),
+        axis.title.x = element_text(size = 14),
         axis.title.y = element_blank(),
         axis.ticks.y = element_blank(),
-        plot.subtitle = element_text(size = 12, hjust = 0.6),
+        plot.subtitle = element_text(size = 14, hjust = 0.6),
         plot.margin = margin(t = 4, r = 10),
         panel.grid = element_blank(),
         panel.background = element_blank())

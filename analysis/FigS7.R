@@ -1,4 +1,4 @@
-source('~/Dropbox/1current/spatial_composition_change/WhittakerBetaChange/analysis/Fig2i-wrangle.R')
+source('~/Dropbox/1current/spatial_composition_change/WhittakerBetaChange/analysis/Fig2-1-wrangle.R')
 
 # counts of observed homogenisation and differentiation (no change is where empirical delta-alpha==delta-regional==0)
 pattern_summary %>% 
@@ -99,6 +99,44 @@ dat4bar_obs$concept_label <- factor(dat4bar_obs$concept_label,
     legend.key.size = unit(8, units = 'pt'))
 
 
-# local
-ggsave('~/Dropbox/1current/spatial_composition_change/figures/results/FigS7.pdf',
-       width = 200,  height = 138, units = 'mm')
+# # local
+# ggsave('~/Dropbox/1current/spatial_composition_change/figures/results/FigS7.pdf',
+#        width = 200,  height = 138, units = 'mm')
+
+
+# model estimates
+ggplot() +
+  geom_bar(data = pattern_summary %>% 
+             mutate(concept_label  = case_when(concept == 'Gain high occupancy' ~  'i. Gain high occupancy',
+                                               concept == 'High occupancy replace low' ~  'ii. High occupancy replace low',
+                                               concept == 'Lose low occupancy' ~  'iii. Lose low occupancy',
+                                               concept == 'Lose high occupancy' ~  'iv. Lose high occupancy',
+                                               concept == 'Low occupancy replace high' ~  'v. Low occupancy replace high',
+                                               concept == 'Gain low occupancy' ~  'vi. Gain low occupancy')) %>% 
+             group_by(concept_label) %>% 
+             summarise(n = n()),
+           aes(x = concept_label, y = n, fill = concept_label),#, fill = sample_type
+           stat = 'identity') +
+  geom_label(aes(x = 2, y = 70, label = 'Differentiation'),
+             size = 3.5) +
+  geom_label(aes(x = 5, y = 70, label = 'Homogenisation'),
+             size = 3.5) +
+  geom_vline(xintercept = 3.5, lty = 2, colour = '#bdbdbd') +
+  scale_x_discrete(labels = label_wrap_gen(width = 19), limits = rev) +
+  scale_fill_manual(guide = 'none', values = concept_colour) +
+  labs(x = '',
+       y = 'Number of regions') +
+  coord_flip() +
+  theme_minimal() +
+  theme(panel.border = element_blank(),
+        panel.grid.major.x  = element_blank(),
+        panel.grid = element_blank(),
+        axis.ticks = element_blank(),
+        plot.background = element_rect(fill = 'white', color = 'white'),
+        panel.background = element_blank(),
+        legend.position = c(1,0),
+        legend.justification = c(1,0),
+        axis.text = element_text(size = 11),
+        axis.title = element_text(size = 12),
+        legend.text = element_text(size = 12),
+        legend.key.size = unit(8, units = 'pt'))
