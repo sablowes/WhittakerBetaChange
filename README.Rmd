@@ -17,7 +17,7 @@ knitr::opts_chunk$set(
 
 The WhittakerBetaChange repository includes R code to reproduce the analyses shown in the article: 
 
-**Synthesis reveals biotic homogenisation and differentiation are both common**
+**Local changes dominate variation in biotic homogenization and differentiation**
 
 *by Shane A. Blowes, Brian McGill, Viviana Brambilla, Cher F. Y. Chow, Thore Engel, Ada Fontrodona-Eslava, Inês S. Martins, Daniel McGlinn, Faye Moyes, Alban Sagouis, Hideyasu Shimadzu, Roel van Klink, Wu-Bing Xu, Nicholas J. Gotelli, Anne Magurran, Maria Dornelas, Jonathan M. Chase*
 
@@ -35,25 +35,32 @@ https://github.com/chase-lab/homogenisation-richness
 
 **00-fit-models-maintext-code-for-eve**: This folder contains scripts that were used to fit statistical models to data shown in main text (written for EVE (HPC))
 
-**00-fit-models-supplement-code-for-eve**: This folder contains scripts that were used to fit statistical models to data shown in the supplement (sensitivity analyses)
+**00-fit-time-series-models**: This folder contains scripts that were used to fit statistical models to time series data
 
 **dist2line**: Function to calculate distance to 1:1 line
 
-**ExDat-Fig1-map.R**: Code to produce Extended Data Figure 1
+**Fig2-1-wrangle.R**: Code to wrangle model results for Figure 2
 
-**ExDat-Fig2-2yr-multiyr-compare.R**: Code to produce Extended Data Figure 2: comparison of models fit to data with a single start/end year versus start/end periods for data where multiple years were available
+**Fig2-2-plot.R**: Code to plot Figure 2
 
-*ExDat-Fig3-scale-effect-size-plots.R**: Code to produce Extended Data Figure 3: plot of empirical effect sizes as a function of spatial and temporal extent
+**Fig3-1-wrangle.R**: Code to wrangle model results for Figure 3
 
-**Fig2i-wrangle.R**: Code to wrangle model results for Figure 2
+**Fig3-2-plot.R**: Code to plot Figure 3
 
-**Fig2ii-plot.R**: Code to plot Figure 2
+**FigS2.R**: Code to plot Figure S2
 
-**Fig3i-wrangle.R**: Code to wrangle model results for Figure 3
+**FigS3-and-S5.R**: Code to plot Figure S3, S5
 
-**Fig3ii-plot.R**: Code to plot Figure 3
+**FigS4.R**: Code to plot Figure S4
+
+**FigS5-1-wrangle-anti-ts-data.R**: data wrangle for Figure S5 (datasets with only two points)
+
+**FigS5-1-wrangle-ts-data.R**: data wrangle for Figure S5 (time series data)
+
+**FigS6.R**: Code to plot Figure S6
+
 
 ## Data wrangle
 
-This folder contains subfolders, each containing the code used to standardise sampling effort for different sources of biodiversity data, and then combine them empirical effect sizes with metadata in preparation for visualisation and model fitting. 
+Each subfolder has the code used to standardise sampling effort for different sources of biodiversity data at two scales: a smaller (alpha) scale, and larger (gamma) scale. Two sets of data (each documenting the alpha and gamma scales) are compiled: (1) effect sizes of the rate of change in species richness, calculated as the log-ratio of richness at the two time points, divided by the number of years elapsed between richness observations; and, (2) time series of richness and a diversity metric related to Simpson's concentration. 
 

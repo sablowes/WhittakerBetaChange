@@ -35,6 +35,13 @@ bt_meta <- bt_extent %>%
          longitude = centroid_X,
          latitude = centroid_Y)
 
+# export study id's for bibliography
+write_csv(bt_meta %>% 
+            select(STUDY_ID) %>% 
+            as_tibble %>% 
+            select( -geometry),
+          file = '~/Dropbox/1current/spatial_composition_change/ms/refs/bt-study-id.csv')
+
 load('~/Dropbox/1current/spatial_composition_change/results/rft_extent.Rdata')
 
 rft_grain <- read_csv('~/Dropbox/1current/data/RivFishTime/1873_10_1873_2_RivFishTIME_SurveyTable.csv') %>% 
@@ -88,6 +95,11 @@ homog_meta2 <- homog_meta2 %>%
   select(-dsreg) %>% 
   unite(rl, c(dataset_id, regional, local), remove = F) %>% 
   filter(rl %in% reg_loc$reg_loc)
+
+# for bibliography
+write_csv(homog_meta2 %>% 
+            distinct(dataset_id, regional_level, sample_type, doi),
+          file = '~/Dropbox/1current/spatial_composition_change/ms/refs/idiv-dat.csv')
 
 # need to calculate centroid for plotting regions as a single point
 homog_centroid <- homog_meta2 %>% 
@@ -193,6 +205,10 @@ Sonly_meta <- read_csv('~/Dropbox/BioTimeX/Local-Regional Homogenization/_richne
 Sonly_meta %>% 
   filter(is.na(gamma_bounding_box_km2) & is.na(gamma_sum_grains_km2))
 
+# for bibliography
+write_csv(Sonly_meta %>% 
+            select(dataset_id, regional_level, doi),
+          file = '~/Dropbox/1current/spatial_composition_change/ms/refs/Sonly.csv')
 # Invertbrate metadata
 load('~/Dropbox/1current/spatial_composition_change/data/invert-location-plots.Rdata')
 
@@ -209,6 +225,14 @@ invert_filtered_2timeOnly <- invert_filtered %>%
                            Year==max(Year) ~ 'end',
                            (Year!=min(Year) | Year!=max(Year)) ~ 'intermediate')) %>% 
   ungroup() 
+
+# for bibliography
+invert_filtered_2timeOnly %>% 
+  distinct(Datasource_ID, Realm) %>% 
+  mutate(database = 'Invertebrates',
+         sample_type = 'resurvey', 
+         taxon = 'Invertebrates') %>% 
+  write_csv(file = '~/Dropbox/1current/spatial_composition_change/ms/refs/invert-refs.csv')
 
 invert_sf <- invert_filtered_2timeOnly %>% 
   distinct(Datasource_ID, loc_plot, Longitude, Latitude) %>% 

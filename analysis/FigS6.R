@@ -1,4 +1,5 @@
-# Whitakker concept plot for time series
+# Whitakker concept plot for models fit to time series data
+# need to run Fig3-1-wrangle.R before plotting with code below
 
 whitS <-
 ggplot() + 
@@ -27,8 +28,8 @@ ggplot() +
   scale_x_continuous(breaks = seq(-0.06, 0.08, by = 0.02)) +
   scale_y_continuous(breaks = seq(-0.06, 0.08, by = 0.02)) +
   scale_fill_manual(guide = 'none') +
-  labs(x = expression(paste(alpha-scale, ' diversity change [log(', phantom()^0*D, ') / year]')),
-       y = expression(paste(gamma-scale, ' diversity change [log(', phantom()^0*D, ') / year]'))) +
+  labs(x = expression(paste(alpha-scale, ' richness change [log(S) / year]')),
+       y = expression(paste(gamma-scale, ' richness change [log(S) / year]'))) +
   coord_fixed()+
   theme_minimal()
 
@@ -59,8 +60,8 @@ ggplot() +
   #                    breaks = seq(-0.06, 0.06, by = 0.02)) +
   # scale_y_continuous(breaks = seq(-0.06, 0.06, by = 0.02)) +
   scale_fill_manual(guide = 'none') +
-  labs(x = expression(paste(alpha-scale, ' diversity change [log(', phantom()^2*D, ') / year]')),
-       y = expression(paste(gamma-scale, ' diversity change [log(', phantom()^2*D, ') / year]'))) +
+  labs(x = expression(paste(alpha-scale, ' diversity change [log(D) / year]')),
+       y = expression(paste(gamma-scale, ' diversity change [log(D) / year]'))) +
   coord_fixed()+
   theme_minimal()
 
@@ -69,6 +70,6 @@ cowplot::plot_grid(whitS,
                    # align= 'v',
                    nrow = 1)
 
-ggsave('~/Dropbox/1current/spatial_composition_change/figures/presentations/whitakker-q0-q2-ts-165.pdf',
+ggsave('~/Dropbox/1current/spatial_composition_change/figures/results/FigS6.pdf',
        width = 290, height = 200, units = 'mm')
 

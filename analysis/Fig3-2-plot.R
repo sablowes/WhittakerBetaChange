@@ -38,24 +38,30 @@ order_q_beta <-
                  alpha = 0.35, point_alpha = 1, interval_alpha = 1,
                  position = position_nudge(y = -0.1)) +
   geom_vline(xintercept = 0, lty = 2, colour = '#bdbdbd') +
-  scale_fill_manual(name = 'Diversity order',
+  scale_fill_manual(name = '',
                     values = c('q = 0' = '#424242',
                                # 'q = 1' = '#8e8e8e',
-                               'q = 2' = '#e2e2e2')) +
-  scale_colour_manual(name = 'Diversity order',
+                               'q = 2' = '#e2e2e2'),
+                    labels = c('q = 0' = 'Species\nrichness (S)',
+                               'q = 2' = 'Diversity (D)')) +
+  scale_colour_manual(name = '',
                     values = c('q = 0' = '#424242',
                                # 'q = 1' = '#8e8e8e',
-                               'q = 2' = '#e2e2e2')) +
-  scale_shape_manual(name = 'Diversity order',
+                               'q = 2' = '#e2e2e2'),
+                    labels = c('q = 0' = 'Species\nrichness (S)',
+                               'q = 2' = 'Diversity (D)')) +
+  scale_shape_manual(name = '',
                      values = c('q = 0' = 15,
                                 # 'q = 1' = 19,
-                                'q = 2' = 17)) +
+                                'q = 2' = 17),
+                     labels = c('q = 0' = 'Species\nrichness (S)',
+                                'q = 2' = 'Diversity (D)')) +
   scale_x_continuous(breaks = c(-0.005, -0.0025, 0, 0.0025, 0.005, 0.00750),
                      labels = c(-0.005, '', 0, '', 0.005, '')) +
   labs(x = expression(paste(Delta, beta, ' - diversity . ', year^-1)),
        y = '') +
   theme_minimal() +
-  theme(legend.position = c(0.9,0.9),
+  theme(legend.position = c(0.8,0.9),
         legend.title = element_blank(),
         axis.text.y = element_blank(),
         plot.background = element_rect(fill = 'white', color = 'white'),
@@ -135,17 +141,21 @@ ggplot() +
                  y = regional_S_PIE, colour = 'q = 2', shape = 'q = 2'),
              size = 3) +
   scale_colour_manual(guide = 'none',
-                      name = 'Diversity order',
+                      name = '',
                       values = c('q = 0' = '#8e8e8e',
                                  # 'q = 1' = '#8e8e8e',
-                                 'q = 2' = '#e2e2e2')) +
+                                 'q = 2' = '#e2e2e2'),
+                      labels = c('q = 0' = 'Species richness (S)',
+                                 'q = 2' = 'Diversity (D)')) +
   scale_shape_manual(guide = 'none',
-                     name = 'Diversity order',
+                     name = '',
                      values = c('q = 0' = 15,
                                 # 'q = 1' = 19,
-                                'q = 2' = 17)) +
-  labs(y = expression(paste(gamma-scale, ' [log(', phantom()^q*D, ') / year]')),
-       x = expression(paste(alpha-scale, ' [log(', phantom()^q*D, ') / year]'))) + 
+                                'q = 2' = 17),
+                     labels = c('q = 0' = 'Species richness (S)',
+                                'q = 2' = 'Diversity (D)')) +
+  labs(y = expression(paste(gamma-scale, ' [log(value) / year]')),
+       x = expression(paste(alpha-scale, ' [log(value) / year]'))) + 
   coord_fixed() +
   theme_minimal() +
   theme(plot.background = element_rect(fill = 'white', color = 'white', linetype = 0),
@@ -166,14 +176,18 @@ hleg <- ggplot() +
              aes(x = local_S_PIE,
                  y = regional_S_PIE, colour = 'q = 2', shape = 'q = 0'),
              size = 3) +
-  scale_colour_manual(name = 'Diversity order',
+  scale_colour_manual(name = '',
                       values = c('q = 0' = '#8e8e8e',
                                  # 'q = 1' = '#8e8e8e',
-                                 'q = 2' = '#e2e2e2')) +
-  scale_shape_manual(name = 'Diversity order',
+                                 'q = 2' = '#e2e2e2'),
+                      labels = c('q = 0' = 'Species richness (S)',
+                                 'q = 2' = 'Diversity (D)')) +
+  scale_shape_manual(name = '',
                       values = c('q = 0' = 15,
                                  # 'q = 1' = 19,
-                                 'q = 2' = 17)) +
+                                 'q = 2' = 17),
+                     labels = c('q = 0' = 'Species richness (S)',
+                                'q = 2' = 'Diversity (D)')) +
   theme(legend.direction = 'horizontal',
         legend.position = 'top', 
         legend.key = element_blank()) +
@@ -259,7 +273,7 @@ forest_q0_3scales <- ggplot() +
   #                    labels = c(expression(paste(alpha-scale)),
   #                               expression(paste(beta-scale)),
   #                               expression(paste(gamma-scale)))) +
-  labs(x = expression(paste('Change in diversity', ' [log(', phantom()^0*D, ') / year]')),
+  labs(x = expression(paste('Change in diversity', ' [log(richness) / year]')),
        y = 'Data set') +
   theme_minimal() + 
   theme(axis.text.y = element_blank(),
@@ -320,7 +334,7 @@ forest_q2_3scales <- ggplot() +
   #   labels = c(expression(paste(alpha-scale)),
   #              expression(paste(beta-scale)),
   #              expression(paste(gamma-scale)))) +
-  labs(x = expression(paste('Change in diversity', ' [log(', phantom()^2*D, ') / year]')),
+  labs(x = expression(paste('Change in diversity', ' [log(diversity) / year]')),
        y = 'Region') +
   theme_minimal() + 
   theme(axis.text.y = element_blank(),
