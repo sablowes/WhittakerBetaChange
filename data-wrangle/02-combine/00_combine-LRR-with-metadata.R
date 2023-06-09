@@ -231,7 +231,8 @@ invert_filtered_2timeOnly %>%
   distinct(Datasource_ID, Realm) %>% 
   mutate(database = 'Invertebrates',
          sample_type = 'resurvey', 
-         taxon = 'Invertebrates') %>% 
+         taxon = 'Invertebrates',
+         regional_level = paste0('i_', Datasource_ID)) %>% 
   write_csv(file = '~/Dropbox/1current/spatial_composition_change/ms/refs/invert-refs.csv')
 
 invert_sf <- invert_filtered_2timeOnly %>% 
