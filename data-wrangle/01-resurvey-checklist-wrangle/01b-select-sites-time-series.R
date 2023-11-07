@@ -6,8 +6,8 @@
 
 library(tidyverse)
 
-dat <- read_csv('~/Dropbox/BioTimeX/Local-Regional Homogenization/_data_extraction/metacommunity-survey-communities.csv')
-meta <- read_csv('~/Dropbox/BioTimeX/Local-Regional Homogenization/_data_extraction/metacommunity-survey-metadata.csv')
+dat <- read_csv('~/Dropbox/BioTimeX/Local-Regional Homogenization/_data_extraction/metacommunity-survey_communities-standardised.csv')
+meta <- read_csv('~/Dropbox/BioTimeX/Local-Regional Homogenization/_data_extraction/metacommunity-survey_metadata-standardised.csv')
 
 # function to find maximum rectangle of ones in a binary matrix
 source('~/Dropbox/1current/R_random/find_max_rect.R')
@@ -103,6 +103,15 @@ rs_filtered <- rs_4loc_10yr_filtered %>%
   inner_join(dat_rs, 
              by = c("dataset_id", "regional_level",  "regional", "year", "local"))
 
+# reapply four site, 10-year check
+rs_filtered <- rs_filtered %>% 
+  group_by(regional_level) %>% 
+  mutate(n_loc = n_distinct(local),
+         duration = max(year) - min(year) +1) %>% 
+  ungroup() %>% 
+  # filter to years with at least 4 locations
+  filter(duration >= 10 & n_loc >= 4)
+         
 
 # visual inspection
 r <- rs_filtered %>% distinct(regional_level) %>% pull()
@@ -125,9 +134,9 @@ for(i in 1:length(r)){
 dev.off()
 
 # create list of studies for manual checking  
-# write_csv(rs_filtered %>%
-#             distinct(regional_level),
-# file = '~/Dropbox/1current/spatial_composition_change/WhittakerBetaChange/data-wrangle/01-resurvey-checklist-wrangle/balanced-site-years/resurvey-time-series-datasource-inspection.csv')
+write_csv(rs_filtered %>%
+            distinct(regional_level),
+file = '~/Dropbox/1current/spatial_composition_change/WhittakerBetaChange/data-wrangle/01-resurvey-checklist-wrangle/balanced-site-years/resurvey-time-series-datasource-inspection-new1.csv')
 
 save(rs_filtered,
      file = '~/Dropbox/1current/spatial_composition_change/data/resurvey-location-plots-maxRect.Rdata')

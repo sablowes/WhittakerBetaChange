@@ -6,14 +6,11 @@ world <- map_data('world')
 taxon_colour = c('Plants' = '#a6cee3',
                  'Mammals' = '#e31a1c',
                  'Birds' = '#b2df8a',
-                 # 'Benthos' = '#33a02c',
                  'Invertebrates' = '#fb9a99',
                  'Fish' = '#1f78b4',
-                 # 'Multiple taxa' = '#fdbf6f',
-                 # 'Marine invertebrates/plants' = '#ff7f00',
                  'Herptiles' = '#cab2d6')
 
-load('~/Dropbox/1current/spatial_composition_change/results/allLRR_meta.Rdata')
+load('~/Dropbox/1current/spatial_composition_change/results/allLRR_meta-new.Rdata')
 sample_type_count <- as_tibble(all_meta) %>% 
   group_by(sample_type) %>% 
   summarise(n = n())
@@ -66,12 +63,13 @@ ggplot() +
         # weird that the face argument is not working for plot.tag, 
         # it inherits from title, so...
         # title = element_text(face = 'bold', size = 8),
-        legend.text = element_text(size = 16, face = 'plain'),
-        legend.title = element_text(size = 18, face = 'bold')) +
+        legend.text = element_text(size = 10, face = 'plain'),
+        legend.title = element_text(size = 11, face = 'bold')) +
   guides(colour = guide_legend(title.position = 'top', title.hjust = 0.5),
          shape = guide_legend(title.position = 'top', title.hjust = 0.5, size = 3),
          size = guide_legend(title.position = 'top', title.hjust = 0.5))
 
 
+# two column fig Sci Adv
 ggsave('~/Dropbox/1current/spatial_composition_change/figures/results/FigS1.pdf',
-       width = 290, height = 200, units = 'mm')
+       width = 184, height = 150, units = 'mm')

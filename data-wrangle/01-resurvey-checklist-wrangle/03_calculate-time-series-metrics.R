@@ -2,8 +2,8 @@
 library(tidyverse)
 
 # load the data that have had the years and sites identified
-load('~/Dropbox/1current/spatial_composition_change/data/resurvey-time-series-clean.Rdata')
-meta <- read_csv('~/Dropbox/BioTimeX/Local-Regional Homogenization/_data_extraction/metacommunity-survey-metadata.csv')
+load('~/Dropbox/1current/spatial_composition_change/data/resurvey-time-series-clean-new.Rdata')
+meta <- read_csv('~/Dropbox/BioTimeX/Local-Regional Homogenization/_data_extraction/metacommunity-survey_metadata-standardised.csv')
 
 # reduce to count data, and tidy up 
 resurvey_timeSeries <- resurvey_timeSeries %>% 
@@ -224,47 +224,6 @@ resurvey_metrics_jk <- resurvey_jk_wide %>%
 save(resurvey_alpha,
      resurvey_gamma,
      resurvey_regional_jacknife,
-     resurvey_metrics,
-     resurvey_metrics_jk,
+     # resurvey_metrics,
+     # resurvey_metrics_jk,
      file = '~/Dropbox/1current/spatial_composition_change/results/resurvey_timeSeries_metrics.Rdata')
-
-
-ggplot() +
-  facet_wrap(~regional_level, scales = 'free') + 
-  # stat_smooth(data = invert_metrics %>% unnest(c(S_c)),
-  #             aes(x = Year, y = alpha_value, colour = 'alpha'),
-  #             method = 'lm') +
-  # stat_smooth(data = invert_metrics %>% unnest(c(S_c)),
-  #             aes(x = Year, y = gamma_value, colour = 'gamma'),
-  #             method = 'lm') +
-  stat_smooth(data = resurvey_metrics_jk %>% 
-                unnest(c(S_c)) %>% 
-                group_by(regional_level, year) %>% 
-                summarise(beta = mean(beta)),
-              aes(x = year, y = beta, colour = 'beta_C'),
-              method = 'lm') +
-  stat_smooth(data = resurvey_metrics_jk %>% 
-                unnest(c(S)) %>% 
-                filter(scale == 'beta') %>% 
-                group_by(regional_level, year) %>% 
-                summarise(beta_S = mean(value)),
-              aes(x = year, y = beta_S, colour = 'beta_S'),
-              method = 'lm') +
-  stat_smooth(data = resurvey_metrics_jk %>% 
-                unnest(c(S_PIE)) %>% 
-                filter(scale == 'beta') %>% 
-                group_by(regional_level, year) %>% 
-                summarise(beta_S_PIE = mean(value)),
-              aes(x = year, y = beta_S_PIE, colour = 'beta_S_PIE'),
-              method = 'lm') +
-  # geom_point(data = invert_metrics %>% unnest(c(S_c)),
-  #             aes(x = Year, y = beta)) +
-  scale_colour_manual(values = c('alpha' = '#00353e',
-                                 'beta_C' = '#488f31',
-                                 'beta_S' = '#9fc08f',
-                                 'gamma' = '#ffa600',
-                                 'beta_S_PIE' = 'black')) +
-  scale_y_continuous(trans = 'log2') +
-  theme(axis.text = element_blank(),
-        axis.title = element_blank())
-

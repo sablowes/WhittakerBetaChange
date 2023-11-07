@@ -6,8 +6,8 @@
 
 library(tidyverse)
 
-dat <- read_csv('~/Dropbox/BioTimeX/Local-Regional Homogenization/_data_extraction/metacommunity-survey-communities.csv')
-meta <- read_csv('~/Dropbox/BioTimeX/Local-Regional Homogenization/_data_extraction/metacommunity-survey-metadata.csv')
+dat <- read_csv('~/Dropbox/BioTimeX/Local-Regional Homogenization/_data_extraction/metacommunity-survey_communities-standardised.csv')
+meta <- read_csv('~/Dropbox/BioTimeX/Local-Regional Homogenization/_data_extraction/metacommunity-survey_metadata-standardised.csv')
 
 # create new regional_level for resurvey data
 dat_rs <- dat %>% 
@@ -182,27 +182,27 @@ left_join(rs_filtered_2timeOnly %>%
 
 
 # visual inspection
-# r <- rs_filtered %>% distinct(regional_level) %>% pull()
-# 
-# pdf('~/Dropbox/1current/spatial_composition_change/figures/data-visualisation/resurvey-two-time-points-only.pdf', width = 12, height = 9)
-# 
-# for(i in 1:length(r)){
-#   print(paste('STUDY', i, 'of', length(r), 'regions'))
-#   
-#   p = ggplot() +
-#     geom_point(data = rs_filtered %>% 
-#                  # filter(fyear!='intermediate') %>% 
-#                  distinct(regional_level, year) %>% #, fyear
-#                  right_join(rs_filtered_2timeOnly) %>%  
-#                  filter(regional_level == r[i]) %>% 
-#                  distinct(local, year, fyear),#
-#                aes(x = year, y = local, colour = fyear)) +#
-#     labs(subtitle = r[i])
-#   
-#   
-#   print(p)
-# }
-# dev.off()
+r <- rs_filtered %>% distinct(regional_level) %>% pull()
+
+pdf('~/Dropbox/1current/spatial_composition_change/figures/data-visualisation/resurvey-two-time-points-only.pdf', width = 12, height = 9)
+
+for(i in 1:length(r)){
+  print(paste('STUDY', i, 'of', length(r), 'regions'))
+
+  p = ggplot() +
+    geom_point(data = rs_filtered %>%
+                 # filter(fyear!='intermediate') %>%
+                 distinct(regional_level, year) %>% #, fyear
+                 right_join(rs_filtered_2timeOnly) %>%
+                 filter(regional_level == r[i]) %>%
+                 distinct(local, year, fyear),#
+               aes(x = year, y = local, colour = fyear)) +#
+    labs(subtitle = r[i])
+
+
+  print(p)
+}
+dev.off()
 
 # now wrangle the checklist data
 cl_dat <- read_csv('~/Dropbox/BioTimeX/Local-Regional Homogenization/_data_extraction/checklist_change_communities.csv') %>% 
@@ -223,7 +223,7 @@ cl_dat %>%
   ungroup() %>% 
   filter(n_yrs != 1)
 
-# reducet to regions with at least four sites 
+# reduce to regions with at least four sites 
 cl_dat <- cl_dat %>% 
   group_by(regional_level) %>% 
   mutate(n_site = n_distinct(local)) %>% 
@@ -258,25 +258,30 @@ cl_dat %>%
   select(-reg_loc) 
 
 # visual inspection
-# r <- cl_dat %>% distinct(regional_level) %>% pull()
-# 
-# pdf('~/Dropbox/1current/spatial_composition_change/figures/data-visualisation/checklist-two-time-points-only.pdf', width = 12, height = 9)
-# 
-# for(i in 1:length(r)){
-#   print(paste('STUDY', i, 'of', length(r), 'regions'))
-# 
-#   p = ggplot() +
-#     geom_point(data = cl_dat %>%
-#                  filter(regional_level == r[i]) %>%
-#                  distinct(local, year, fyear),#
-#                aes(x = year, y = local, colour = fyear)) +#
-#     labs(subtitle = r[i])
-# 
-# 
-#   print(p)
-# }
-# dev.off()
-# 
+r <- cl_dat %>% distinct(regional_level) %>% pull()
+
+pdf('~/Dropbox/1current/spatial_composition_change/figures/data-visualisation/checklist-two-time-points-only-new.pdf', width = 12, height = 9)
+
+for(i in 1:length(r)){
+  print(paste('STUDY', i, 'of', length(r), 'regions'))
+
+  p = ggplot() +
+    geom_point(data = cl_dat %>%
+                 filter(regional_level == r[i]) %>%
+                 distinct(local, year, fyear),#
+               aes(x = year, y = local, colour = fyear)) +#
+    labs(subtitle = r[i])
+
+
+  print(p)
+}
+dev.off()
+
+# create list of regions for visual checking
+write_csv(cl_dat %>%
+            distinct(regional_level),
+          file = '~/Dropbox/1current/spatial_composition_change/WhittakerBetaChange/data-wrangle/01-resurvey-checklist-wrangle/checklist-visual-inspection-new.csv')
+
 
 # put the checklists and resurveys back together (for initial analysis of all
 # data combined)

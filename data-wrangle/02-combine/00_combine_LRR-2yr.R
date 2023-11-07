@@ -11,7 +11,7 @@ library(tidyverse)
 
 load('~/Dropbox/1current/spatial_composition_change/results/bt_LRR-new.Rdata')
 load('~/Dropbox/1current/spatial_composition_change/results/rft_LRR.Rdata')
-load('~/Dropbox/1current/spatial_composition_change/results/homog_LRR.Rdata')
+load('~/Dropbox/1current/spatial_composition_change/results/homog_LRR-new.Rdata')
 load('~/Dropbox/1current/spatial_composition_change/results/Sonly_LRR.Rdata')
 load('~/Dropbox/1current/spatial_composition_change/results/invert_LRR.Rdata')
 load('~/Dropbox/1current/spatial_composition_change/results/mosquito_LRR.Rdata')
@@ -44,6 +44,14 @@ homog_regional_LR <- homog_regional_LR %>%
   unite(dsreg, c(dataset_id, regional), remove = F) %>% 
   filter(!dsreg %in% dupes) %>% 
   select(-dsreg)
+
+# save these for identifying studies
+homogenisation_levels <- homog_regional_jknife_LR %>% 
+  distinct(dataset_id, regional, regional_level) %>% 
+  mutate(regional_level = paste0('h_', regional_level))
+
+save(homogenisation_levels,
+     file = '~/Dropbox/1current/spatial_composition_change/data/homogenisation-levels.Rdata')
 
 #  make coding of 'studies' consistent and identifiable
 local_LRR <- bind_rows(bt_local_LR %>% 

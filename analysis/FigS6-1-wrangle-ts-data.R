@@ -1,21 +1,22 @@
 # results from simplest two-stage analysis: overall intercept-only model fit to the log-ratio / duration (ES)
-# there are regions that get dropped between the two analyses
 library(tidyverse)
 library(brms)
 library(tidybayes)
 library(cowplot)
 
 
-load('~/Dropbox/1current/spatial_composition_change/results/model_fits/local-es-norm-sigma_ts_anti-30871394.Rdata')
-load('~/Dropbox/1current/spatial_composition_change/results/model_fits/regional-es-jk-norm-sigma_ts_anti-30871395.Rdata')
-load('~/Dropbox/1current/spatial_composition_change/data/all_meta.Rdata')
+# load('~/Dropbox/1current/spatial_composition_change/results/model_fits/local-es-norm-sigma2-25428714.Rdata')
+load('~/Dropbox/1current/spatial_composition_change/results/model_fits/local-ES-norm-sigma-ts-730645.Rdata')
+# load('~/Dropbox/1current/spatial_composition_change/results/model_fits/regional-es-jk-norm-sigma2-25428781.Rdata')
+load('~/Dropbox/1current/spatial_composition_change/results/model_fits/regional-ES-jk-norm-sigma-ts.Rdata')
+load('~/Dropbox/1current/spatial_composition_change/data/all_meta-new.Rdata')
 
 set.seed(101)
-local_overall_post <- gather_draws(local_ES_norm_sigma_ts_anti, b_Intercept) %>% 
+local_overall_post <- gather_draws(local_ES_norm_sigma2_ts, b_Intercept) %>% 
   # 90% credible interval of intercept
   median_qi(.width = 0.9)  
 
-regional_overall_post <- gather_draws(regional_ES_jk_norm_sigma_ts_anti, b_Intercept) %>% 
+regional_overall_post <- gather_draws(regional_ES_jk_norm_sigma2_ts, b_Intercept) %>% 
   median_qi(.width = 0.9)
 
 overall_intercept <- bind_cols(local_overall_post %>% 
@@ -29,8 +30,8 @@ overall_intercept <- bind_cols(local_overall_post %>%
                                         regional_Q05 = .lower) %>% 
                                  select(regional_intercept, regional_Q95, regional_Q05))
 
-local_posterior_ES <- local_ES_norm_sigma_ts_anti$data %>% 
-  add_predicted_draws(object = local_ES_norm_sigma_ts_anti, ndraws = 1000)
+local_posterior_ES <- local_ES_norm_sigma2_ts$data %>% 
+  add_predicted_draws(object = local_ES_norm_sigma2_ts, ndraws = 1000)
 
 local_summary_ES <- local_posterior_ES %>% 
   group_by(regional_level) %>% 
@@ -43,8 +44,8 @@ local_summary_ES <- local_posterior_ES %>%
   arrange(local_mu.hat) %>% 
   mutate(local_rank = 1:n())
 
-regional_posterior <- regional_ES_jk_norm_sigma_ts_anti$data %>% 
-  add_predicted_draws(object = regional_ES_jk_norm_sigma_ts_anti, ndraws = 1000)
+regional_posterior <- regional_ES_jk_norm_sigma2_ts$data %>% 
+  add_predicted_draws(object = regional_ES_jk_norm_sigma2_ts, ndraws = 1000)
 
 
 regional_summary <- regional_posterior %>% 
@@ -64,7 +65,7 @@ local_posterior_ES <- local_posterior_ES %>%
   ungroup()
 
 
-anti_ts_pattern_summary <- left_join(local_summary_ES, 
+ts_pattern_summary <- left_join(local_summary_ES, 
                              regional_summary) %>% 
   mutate(spatial_pattern = ifelse(regional_mu.hat > local_mu.hat, 'differentiation', 'homogenisation'),
          spatial_pattern_obs = case_when(regional_mu.i > local_mu.i ~ 'differentiation',

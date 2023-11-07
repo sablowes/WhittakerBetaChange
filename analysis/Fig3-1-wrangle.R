@@ -4,8 +4,8 @@ library(brms)
 library(tidybayes)
 
 
-load('~/Dropbox/1current/spatial_composition_change/results/model_fits/local-S-lnorm-30871432.Rdata')
-load('~/Dropbox/1current/spatial_composition_change/results/model_fits/local-S_PIE-lnorm-30871434.Rdata')
+load('~/Dropbox/1current/spatial_composition_change/results/model_fits/local-S-lnorm-633047.Rdata')
+load('~/Dropbox/1current/spatial_composition_change/results/model_fits/local-S_PIE-lnorm-633049.Rdata')
 
 load('~/Dropbox/1current/spatial_composition_change/results/model_fits/gammaS-ts-model.Rdata')
 load('~/Dropbox/1current/spatial_composition_change/results/model_fits/gamma-S_PIE-ts-model.Rdata')
@@ -17,6 +17,8 @@ regional_levels <- m.alphaS_lnorm$data %>%
   distinct(regional_level) %>% 
   mutate(level = regional_level) %>%
   nest(data = level) 
+
+
 
 slopes_regional_variation <- regional_levels %>%
   mutate(local_S = purrr::map(data, ~posterior_samples(m.alphaS_lnorm, 
@@ -77,6 +79,10 @@ slopes_global_level <- bind_cols(gather_draws(m.alphaS_lnorm, `b_cyear`, regex =
                                    select(regional_S_PIE_global))
 
 load('~/Dropbox/1current/spatial_composition_change/data/ts_meta.Rdata')
+
+ts_meta <- ts_meta %>% 
+  filter(regional_level %in% regional_levels$regional_level)
+
 slopes_regional_variation <- left_join(slopes_regional_variation,
                                        ts_meta)
 
@@ -87,7 +93,7 @@ slopes_regional_variation %>%
   unnest(cols = c(local_S,  local_S_PIE, regional_S, regional_S_PIE)) %>% #local_eH,, regional_eH, 
   # regional variation describes departures from global estimate, put global in
   bind_cols(slopes_global_level %>% 
-              slice(rep(1:n(), times = 165))) %>% 
+              slice(rep(1:n(), times = nrow(regional_levels)))) %>% 
   # summarise(alpha_S = median(local_S + local_S_global),
   #           gamma_S = median(regional_S + regional_S_global),
   #           alpha_S_PIE = median(local_S_PIE + local_S_PIE_global),
@@ -141,5 +147,5 @@ two_scales <- slopes_regional_variation %>%
   unnest(cols = c(local_S,  local_S_PIE, regional_S, regional_S_PIE)) %>% #local_eH,, regional_eH, 
   # regional variation describes departures from global estimate, put global in
   bind_cols(slopes_global_level %>% 
-              slice(rep(1:n(), times = 165))) %>% 
+              slice(rep(1:n(), times = nrow(regional_levels)))) %>% 
   select(-data)

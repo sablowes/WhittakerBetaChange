@@ -5,9 +5,9 @@ library(tidybayes)
 library(cowplot)
 
 
-load('~/Dropbox/1current/spatial_composition_change/results/model_fits/local-es-norm-sigma2-30871399.Rdata')
-load('~/Dropbox/1current/spatial_composition_change/results/model_fits/regional-es-jk-norm-sigma2-30871398.Rdata')
-load('~/Dropbox/1current/spatial_composition_change/data/all_meta.Rdata')
+load('~/Dropbox/1current/spatial_composition_change/results/model_fits/local-ES-norm-sigma-641269.Rdata')
+load('~/Dropbox/1current/spatial_composition_change/results/model_fits/regional-ES-jk-norm-sigma.Rdata')
+load('~/Dropbox/1current/spatial_composition_change/data/all_meta-new.Rdata')
 
 # fix one name for joining data
 all_meta <- all_meta %>% 
@@ -49,7 +49,6 @@ local_summary_ES <- local_posterior_ES %>%
 
 regional_posterior <- regional_ES_jk_norm_sigma2$data %>% 
   add_predicted_draws(object = regional_ES_jk_norm_sigma2, ndraws = 1000)
-
 
 regional_summary <- regional_posterior %>% 
   group_by(regional_level) %>% 
@@ -132,3 +131,4 @@ concept_colour = c('Gain low occupancy' = '#61CDE0',
                    'Lose low occupancy' = '#D17538',
                    'High occupancy replace low' = '#E9AE27',
                    'Gain high occupancy' = '#D9D956')
+

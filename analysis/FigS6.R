@@ -15,23 +15,26 @@ ggplot() +
   }, 
   # Enter the levels here
   level = seq(from = 0.05, to = 0.95, by = 0.45)) +
+  geom_vline(xintercept = 0, lty = 2, colour = '#bdbdbd') +
+  geom_hline(yintercept = 0, lty = 2, colour = '#bdbdbd') +
+  geom_abline(intercept = 0, slope = 1, lty = 2, colour = '#bdbdbd') +
   geom_point(data = two_scales %>% 
                group_by(regional_level) %>% 
                summarise(local_dS = median(local_S + local_S_global),
                          regional_dS = median(regional_S + regional_S_global)) %>% 
                left_join(ts_meta),
              aes(x = local_dS,
-                 y = regional_dS)) +
-  geom_vline(xintercept = 0, lty = 2, colour = '#bdbdbd') +
-  geom_hline(yintercept = 0, lty = 2, colour = '#bdbdbd') +
-  geom_abline(intercept = 0, slope = 1, lty = 2, colour = '#bdbdbd') +
+                 y = regional_dS),
+             size = 2) +
   scale_x_continuous(breaks = seq(-0.06, 0.08, by = 0.02)) +
   scale_y_continuous(breaks = seq(-0.06, 0.08, by = 0.02)) +
   scale_fill_manual(guide = 'none') +
   labs(x = expression(paste(alpha-scale, ' richness change [log(S) / year]')),
        y = expression(paste(gamma-scale, ' richness change [log(S) / year]'))) +
   coord_fixed()+
-  theme_minimal()
+  theme_minimal() +
+  theme(axis.title = element_blank(),
+        axis.text = element_text(size = 16))
 
 whitSPIE <-
 ggplot() + 
@@ -46,24 +49,27 @@ ggplot() +
   }, 
   # Enter the levels here
   level = seq(from = 0.05, to = 0.95, by = 0.45)) +
+  geom_vline(xintercept = 0, lty = 2, colour = '#bdbdbd') +
+  geom_hline(yintercept = 0, lty = 2, colour = '#bdbdbd') +
+  geom_abline(intercept = 0, slope = 1, lty = 2, colour = '#bdbdbd') +
   geom_point(data = two_scales %>% 
                group_by(regional_level) %>% 
                summarise(local_dSPIE = median(local_S_PIE + local_S_PIE_global),
                          regional_dSPIE = median(regional_S_PIE + regional_S_PIE_global)) %>% 
                left_join(ts_meta),
              aes(x = local_dSPIE,
-                 y = regional_dSPIE)) +
-  geom_vline(xintercept = 0, lty = 2, colour = '#bdbdbd') +
-  geom_hline(yintercept = 0, lty = 2, colour = '#bdbdbd') +
-  geom_abline(intercept = 0, slope = 1, lty = 2, colour = '#bdbdbd') +
-  # scale_x_continuous(
-  #                    breaks = seq(-0.06, 0.06, by = 0.02)) +
-  # scale_y_continuous(breaks = seq(-0.06, 0.06, by = 0.02)) +
+                 y = regional_dSPIE), 
+             size = 2) +
+  scale_x_continuous(
+                     breaks = seq(-0.06, 0.06, by = 0.02)) +
+  scale_y_continuous(breaks = seq(-0.06, 0.06, by = 0.02)) +
   scale_fill_manual(guide = 'none') +
   labs(x = expression(paste(alpha-scale, ' diversity change [log(D) / year]')),
        y = expression(paste(gamma-scale, ' diversity change [log(D) / year]'))) +
   coord_fixed()+
-  theme_minimal()
+  theme_minimal() +
+  theme(axis.title = element_blank(),
+        axis.text = element_text(size = 16))
 
 cowplot::plot_grid(whitS,
                    whitSPIE,

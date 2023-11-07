@@ -26,6 +26,14 @@ resurvey_levels <- left_join(rs_rl,
                              rs_ll) %>% 
   unite(ll, c(rl2, local_level), remove = FALSE)
 
+resurvey_levels2 <- left_join(resurvey_levels,
+          resurvey_alpha %>% 
+            distinct(dataset_id, regional_level))
+
+# save these for identifying studies 
+save(resurvey_levels2, 
+     file = '~/Dropbox/1current/spatial_composition_change/data/resurvey-levels.Rdata')
+
 resurvey_alpha <- left_join(resurvey_alpha,
                             resurvey_levels)
 
@@ -68,7 +76,7 @@ alpha_ts <- bind_rows(bt_alpha %>%
                         mutate(database = 'Invertebrates',
                                regional_level = paste0('i_', Datasource_ID),
                                local_level = paste0('i_', loc_plot)) %>% 
-                        select(database, regional_level, local_level, year, S, eH, S_PIE),
+                        select(database, regional_level, local_level, year, S, eH, S_PIE, J),
                       mosquito_alpha_timeSeries %>% 
                         mutate(regional_level = paste0('i_', region),
                                local_level = paste0('i_', plot),
@@ -157,6 +165,36 @@ for(i in 1:length(r)){
 }
 dev.off()
 
+# number of individuals in assemblage (all species combined) (J) 
+pdf('~/Dropbox/1current/spatial_composition_change/figures/data-visualisation/alpha-J-ts-inspection.pdf', width = 12, height = 9)
+
+for(i in 1:length(r)){
+  print(paste('region', i, 'of', length(r), 'regions'))
+  
+  p = ggplot() +
+    # facet_wrap(~YEAR) +
+    geom_point(data = alpha_ts %>% 
+                 filter(regional_level == r[i]),
+               aes(x = year, y = J)) +
+    stat_smooth(data = alpha_ts %>% 
+                  filter(regional_level == r[i]),
+                aes(x = year, y = J, group = local_level), 
+                lty = 2, size = 0.5,
+                method = 'lm', se = FALSE) +
+    stat_smooth(data = alpha_ts %>% 
+                  filter(regional_level == r[i]),
+                aes(x = year, y = J), 
+                lty = 1,
+                method = 'lm', se = FALSE) +
+    scale_y_continuous(trans = 'log2') +
+    labs(subtitle = paste0(r[i])) +
+    theme(legend.position = 'none')
+  
+  
+  print(p)
+}
+dev.off()
+
 
 pdf('~/Dropbox/1current/spatial_composition_change/figures/data-visualisation/gamma-ts-inspection.pdf', width = 12, height = 9)
 
@@ -184,6 +222,7 @@ dev.off()
 
 
 # meta-data wrangle
+library(sf)
 # BioTIME
 bt_meta <- read_csv('~/Dropbox/BioTIMELatest/bioTIMEMetadataJune2021.csv') %>% 
   filter(STUDY_ID %in% unique(bt_gamma$STUDY_ID))
@@ -279,7 +318,7 @@ rft_meta <- rft_extent %>%
          gamma_sum_grains_km2 = NA)
 
 # resurvey meta
-resurvey_meta <- read_csv('~/Dropbox/BioTimeX/Local-Regional Homogenization/_data_extraction/metacommunity-survey-metadata.csv') %>% 
+resurvey_meta <- read_csv('~/Dropbox/BioTimeX/Local-Regional Homogenization/_data_extraction/metacommunity-survey_metadata-standardised.csv') %>% 
   unite(regional_level, c(dataset_id, regional), remove = FALSE) 
 
 # filter to regional levels
@@ -297,6 +336,7 @@ rs_geogr <- rs_meta2 %>%
   distinct(regional_level, local, latitude, longitude)
 
 rs_sf <- rs_geogr %>% 
+  filter(!is.na(latitude)) %>% 
   st_as_sf(coords = c('longitude', 'latitude'))  %>% 
   # set geographic crs
   st_set_crs(4326) %>% 
@@ -530,6 +570,7 @@ ts_meta <- ts_meta %>%
          hemisphere = case_when((longitude > 0 & longitude < 180) ~ 'eastern',
                                 TRUE ~ 'western'))
 
+alpha_ts %>% distinct(regional_level)
 gamma_ts %>% distinct(regional_level)
 ts_meta %>% distinct(regional_level)
 
@@ -540,3 +581,17 @@ save(alpha_ts,
 
 save(ts_meta, file = '~/Dropbox/1current/spatial_composition_change/data/ts_meta.Rdata')
 
+# some alpha-scale time series have a high proportion (here > 50%) of samples 
+# with only a single individual; remove these regions from analyses
+regions2remove <- alpha_ts %>% 
+  group_by(regional_level, local_level) %>% 
+  summarise(J1 = sum(J==1),
+            J1S1 = sum(J==1 & S==1),
+            n = n(),
+            prop_J1 = J1 / n,
+            prop_J1S1 = J1S1 / n) %>% 
+  ungroup() %>% 
+  filter(prop_J1S1 > 0.5) %>% 
+  distinct(regional_level)
+
+save(regions2remove, file='~/Dropbox/1current/spatial_composition_change/results/regions2remove.Rdata')

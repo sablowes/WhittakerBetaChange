@@ -4,8 +4,8 @@
 library(tidyverse)
 
 # load the data that have had the years and sites identified
-load('~/Dropbox/1current/spatial_composition_change/data/homog-site-year-selected-two-time-points.Rdata')
-meta <- read_csv('~/Dropbox/BioTimeX/Local-Regional Homogenization/_data_extraction/metacommunity-survey-metadata.csv')
+load('~/Dropbox/1current/spatial_composition_change/data/homog-site-year-selected-two-time-points-clean.Rdata')
+meta <- read_csv('~/Dropbox/BioTimeX/Local-Regional Homogenization/_data_extraction/metacommunity-survey_metadata-standardised.csv')
 
 # first get label the first and last years for the select sites in the resurvey data
 rs_years_max_loc <- rs_years_max_loc %>% 
@@ -82,6 +82,7 @@ filtered_2timeOnly <- filtered_2timeOnly %>%
 
 # want to know number of species at each location for first and last observation in each region
 alpha <- filtered_2timeOnly %>%
+  filter(fyear %in% c('start', 'end')) %>% 
   group_by(dataset_id, fyear, regional, local, metric) %>% 
   dplyr::summarise(S = n_distinct(species),
             eH = ifelse(metric!='pa', exp(vegan::diversity(value, index = 'shannon')),
@@ -140,6 +141,7 @@ regional <- filtered_2timeOnly %>%
   unite(filter, c(dataset_id, regional, local), remove = FALSE) %>% 
   filter(filter %in% data_filter$filter) %>% 
   select(-filter) %>% 
+  filter(fyear %in% c('start', 'end')) %>% 
   group_by(dataset_id, fyear, regional, metric, species) %>% 
   summarise(N = sum(value),
             year = unique(year)) %>% 
@@ -318,4 +320,4 @@ save(homog_local_LR,
      homog_regional_LR, 
      homog_regional_jknife,
      homog_regional_jknife_LR,
-     file = '~/Dropbox/1current/spatial_composition_change/results/homog_LRR.Rdata')
+     file = '~/Dropbox/1current/spatial_composition_change/results/homog_LRR-new.Rdata')

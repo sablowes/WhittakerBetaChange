@@ -3,15 +3,15 @@ path2dir <- '~/Dropbox/1current/spatial_composition_change/WhittakerBetaChange/d
 # manual processing of metacommunity resurvey sampling sites and years
 load('~/Dropbox/1current/spatial_composition_change/data/resurvey-location-plots-maxRect.Rdata')
 
-##	Get the raw data
-dat <- read_csv('~/Dropbox/BioTimeX/Local-Regional Homogenization/_data_extraction/metacommunity-survey-communities.csv')
+##	Get the raw data 
+dat <- read_csv('~/Dropbox/BioTimeX/Local-Regional Homogenization/_data_extraction/metacommunity-survey_communities-standardised.csv')
 
 # create new regional_level for resurvey data
 dat_rs <- dat %>% 
   unite(regional_level, c(dataset_id, regional), remove = FALSE) 
 
 # manual inspection results
-man_inspection <- read_csv(paste0(path2dir, '/../resurvey-time-series-datasource-inspection.csv'),
+man_inspection <- read_csv(paste0(path2dir, '/../resurvey-time-series-datasource-inspection-new.csv'),
                            show_col_types = FALSE)
 
 # studies to clean
@@ -72,7 +72,7 @@ filter(target, !(regional_level %in% check$regional_level))
 # visual inspection
 r <- ok_ts %>% distinct(regional_level) %>% pull()
 
-pdf('~/Dropbox/1current/spatial_composition_change/figures/data-visualisation/resurvey-time-series-clean.pdf', width = 12, height = 9)
+pdf('~/Dropbox/1current/spatial_composition_change/figures/data-visualisation/resurvey-time-series-clean-new.pdf', width = 12, height = 9)
 
 for(i in 1:length(r)){
   print(paste('STUDY', i, 'of', length(r), 'regions'))
@@ -94,9 +94,10 @@ dev.off()
 # check duration
 resurvey_timeSeries <- ok_ts %>% 
   group_by(regional_level) %>% 
-  mutate(duration = max(year) - min(year) + 1) %>% 
+  mutate(duration = max(year) - min(year) + 1,
+         n_years_sampled = n_distinct(year)) %>% 
   ungroup() %>% 
-  filter(duration > 9)
+  filter(duration > 9 & n_years_sampled > 2)
 
 rm(ok_ts)
 
@@ -108,4 +109,4 @@ resurvey_timeSeries %>%
 
 # save data (ready for analysis)
 save(resurvey_timeSeries,
-     file = '~/Dropbox/1current/spatial_composition_change/data/resurvey-time-series-clean.Rdata')
+     file = '~/Dropbox/1current/spatial_composition_change/data/resurvey-time-series-clean-new.Rdata')

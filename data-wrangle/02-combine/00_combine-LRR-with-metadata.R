@@ -2,12 +2,12 @@
 library(tidyverse)
 library(sf)
 # these are the data we want to join the meta data to:
-load('~/Dropbox/1current/spatial_composition_change/results/allLRR.Rdata')
+load('~/Dropbox/1current/spatial_composition_change/results/allLRR-new.Rdata')
 
 # but, first we got some small wrangling to do...and we need 
 load('~/Dropbox/1current/spatial_composition_change/results/bt_LRR-new.Rdata')
 load('~/Dropbox/1current/spatial_composition_change/results/rft_LRR.Rdata')
-load('~/Dropbox/1current/spatial_composition_change/results/homog_LRR.Rdata')
+load('~/Dropbox/1current/spatial_composition_change/results/homog_LRR-new.Rdata')
 load('~/Dropbox/1current/spatial_composition_change/results/Sonly_LRR.Rdata')
 load('~/Dropbox/1current/spatial_composition_change/results/invert_LRR.Rdata')
 load('~/Dropbox/1current/spatial_composition_change/results/mosquito_LRR.Rdata')
@@ -65,7 +65,7 @@ rft_meta <- rft_extent %>%
          sample_type = 'resurvey',
          gamma_sum_grains_km2 = NA)
 
-resurvey_meta <- read_csv('~/Dropbox/BioTimeX/Local-Regional Homogenization/_data_extraction/metacommunity-survey-metadata.csv')
+resurvey_meta <- read_csv('~/Dropbox/BioTimeX/Local-Regional Homogenization/_data_extraction/metacommunity-survey_metadata-standardised.csv')
 checklist_meta <- read_csv('~/Dropbox/BioTimeX/Local-Regional Homogenization/_data_extraction/checklist_change_metadata.csv')
 
 homog_meta <- bind_rows(resurvey_meta %>% 
@@ -97,9 +97,9 @@ homog_meta2 <- homog_meta2 %>%
   filter(rl %in% reg_loc$reg_loc)
 
 # for bibliography
-write_csv(homog_meta2 %>% 
-            distinct(dataset_id, regional_level, sample_type, doi),
-          file = '~/Dropbox/1current/spatial_composition_change/ms/refs/idiv-dat.csv')
+# write_csv(homog_meta2 %>% 
+#             distinct(dataset_id, regional_level, sample_type, doi),
+#           file = '~/Dropbox/1current/spatial_composition_change/ms/refs/idiv-dat.csv')
 
 # need to calculate centroid for plotting regions as a single point
 homog_centroid <- homog_meta2 %>% 
@@ -117,49 +117,9 @@ homog_centroid <- homog_meta2 %>%
   mutate(longitude = st_coordinates(.)[,'X'],
          latitude = st_coordinates(.)[,'Y'])
 
-# there is at least one extent estimate for every region
-homog_meta2 %>% 
-  filter(is.na(gamma_bounding_box_km2) & is.na(gamma_sum_grains_km2))
-# these are the studies missing bounding boxes; they are all checklists
-check <- homog_meta2 %>% 
-  filter(is.na(gamma_bounding_box_km2)) %>% 
-  distinct(dataset_id)
-
-check %>% 
-  filter(!dataset_id %in% checklist_meta$dataset_id)
-
-homog_meta2 %>% 
-  filter(is.na(gamma_bounding_box_km2)) %>% 
-  distinct(dataset_id, gamma_sum_grains_km2)
-
 # todo fix extents for studies where I have not used all sites
 # reduce to essentials before joining
 homog_meta3 <- homog_meta2 %>% 
-  # some studies have multiple extents (for different years), the number of sites are consistent in my analysis, here are the corresponding sum of grains
-  # mutate(gamma_sum_grains_km2 = case_when((dataset_id=='alber_2022' & regional=='GCE1') ~ 0.5*7, # 
-  #                                         (dataset_id=='alber_2022' & regional=='GCE10') ~ 0.5*11, # 
-  #                                         (dataset_id=='alber_2022' & regional=='GCE2') ~ 0.5*7, # 
-  #                                         (dataset_id=='alber_2022' & regional=='GCE3') ~ 0.5*4, # 
-  #                                         (dataset_id=='alber_2022' & regional=='GCE4') ~ 0.5*8, # 
-  #                                         dataset_id=='anderson_2019b' ~ 0.0625*5, # 0.25m x 0.25m quadrat (X5)
-  #                                         dataset_id=='arntzen_2017' ~ 0,
-  #                                         dataset_id=='burlakova_2021' ~ 0,
-  #                                         dataset_id=='christensen_2021' ~ 56 * 1e-6,
-  #                                         dataset_id=='closset-kopp_2018' ~ 0,
-  #                                         dataset_id=='countryside_survey_invertebrates_2017' ~ 0,
-  #                                         dataset_id=='countryside_survey_macrophytes_2017' ~ 0,
-  #                                         dataset_id=='countryside_survey_plants_2017' ~ 0,
-  #                                         dataset_id=='dugan_2021a' ~ 0.05,
-  #                                         dataset_id=='dugan_2021b' ~ 0.05,
-  #                                         dataset_id=='green_2021' ~ 0,
-  #                                         dataset_id=='muthukrishnan_2019' ~ 0,
-  #                                         dataset_id=='santana_2017' ~ 0,
-  #                                         dataset_id=='starko_2019' ~ 0,
-  #                                         dataset_id=='swenson_2020' ~ 0,
-  #                                         dataset_id=='van-cleve_2021' ~ 0.0636,
-  #                                         dataset_id=='werner_2014' ~ 0,
-  #                                         dataset_id=='willig_2010' ~ 0.00110,  
-  #                                         TRUE ~ as.numeric(gamma_sum_grains_km2))) %>% 
   distinct(dataset_id, regional, regional_level, sample_type, gamma_bounding_box_km2, gamma_sum_grains_km2, realm, taxon) %>% 
   mutate(database = 'Homogenisation',
          realm = case_when(realm=='terrestrial' ~ 'Terrestrial',
@@ -180,9 +140,6 @@ homog_meta3 <- homog_meta3 %>%
               as_tibble() %>% 
               select(-geometry)) %>% 
   mutate(database = 'Homogenisation')
-
-homog_regional_LR %>% 
-  filter(!regional_level %in% homog_meta3$regional_level)
 
 # Sonly metadata
 Sonly_regional_level <- richness_only_regional_LR %>% 
@@ -427,7 +384,7 @@ save(local_LRR,
      regional_LRR,
      regional_jknife_LRR,
      all_meta,
-     file = '~/Dropbox/1current/spatial_composition_change/results/allLRR_meta.Rdata')
+     file = '~/Dropbox/1current/spatial_composition_change/results/allLRR_meta-new.Rdata')
 
-save(all_meta, file = '~/Dropbox/1current/spatial_composition_change/data/all_meta.Rdata')
+save(all_meta, file = '~/Dropbox/1current/spatial_composition_change/data/all_meta-new.Rdata')
 

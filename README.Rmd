@@ -17,7 +17,7 @@ knitr::opts_chunk$set(
 
 The WhittakerBetaChange repository includes R code to reproduce the analyses shown in the article: 
 
-**Local changes dominate variation in biotic homogenization and differentiation**
+**Synthesis reveals approximately balanced biotic differentiation and homogenization**
 
 *by Shane A. Blowes, Brian McGill, Viviana Brambilla, Cher F. Y. Chow, Thore Engel, Ada Fontrodona-Eslava, Inês S. Martins, Daniel McGlinn, Faye Moyes, Alban Sagouis, Hideyasu Shimadzu, Roel van Klink, Wu-Bing Xu, Nicholas J. Gotelli, Anne Magurran, Maria Dornelas, Jonathan M. Chase*
 
@@ -49,15 +49,17 @@ https://github.com/chase-lab/homogenisation-richness
 
 **FigS2.R**: Code to plot Figure S2
 
-**FigS3-and-S5.R**: Code to plot Figure S3, S5
+**FigS3.R**: Code to plot Figure S3
 
-**FigS4.R**: Code to plot Figure S4
+**FigS4-and-S6.R**: Code to plot Figure S4, S6
 
-**FigS5-1-wrangle-anti-ts-data.R**: data wrangle for Figure S5 (datasets with only two points)
+**FigS5.R**: Code to plot Figure S5
 
-**FigS5-1-wrangle-ts-data.R**: data wrangle for Figure S5 (time series data)
+**FigS6-1-wrangle-anti-ts-data.R**: data wrangle for Figure S6 (datasets with only two points)
 
-**FigS6.R**: Code to plot Figure S6
+**FigS6-1-wrangle-ts-data.R**: data wrangle for Figure S6 (time series data)
+
+**FigS7.R**: Code to plot Figure S7
 
 
 ## Data wrangle

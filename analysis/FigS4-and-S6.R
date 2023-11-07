@@ -1,20 +1,22 @@
 # compare results of log-ratio analysis of two-time point data (anti-ts) 
-# and time series data (ts)
+# and data where time series are available (ts)
 
-# results from simplest two-stage analysis: overall intercept-only model fit to the log-ratio / duration (ES)
-# there are regions that get dropped between the two analyses
+# results from simplest two-stage analysis: overall intercept-only model fit to
+# log-ratio / duration (ES)
+# NB: fewer regions in the time series data (e.g., all checklists removed)
+
 library(tidyverse)
 library(brms)
 library(tidybayes)
 library(cowplot)
 
 # anti-ts data (models fit to two time points only)
-load('~/Dropbox/1current/spatial_composition_change/results/model_fits/local-es-norm-sigma_ts_anti-30871394.Rdata')
-load('~/Dropbox/1current/spatial_composition_change/results/model_fits/regional-es-jk-norm-sigma_ts_anti-30871395.Rdata')
+load('~/Dropbox/1current/spatial_composition_change/results/model_fits/local-ES-norm-sigma-ts-anti-730659.Rdata')
+load('~/Dropbox/1current/spatial_composition_change/results/model_fits/regional-ES-jk-norm-sigma-ts-anti.Rdata')
 # time series data (models fit to data > 2 time points)
-load('~/Dropbox/1current/spatial_composition_change/results/model_fits/local-es-norm-sigma_ts-30871401.Rdata')
-load('~/Dropbox/1current/spatial_composition_change/results/model_fits/regional-es-jk-norm-sigma_ts-30871431.Rdata')
-load('~/Dropbox/1current/spatial_composition_change/data/all_meta.Rdata')
+load('~/Dropbox/1current/spatial_composition_change/results/model_fits/local-ES-norm-sigma-ts-730645.Rdata')
+load('~/Dropbox/1current/spatial_composition_change/results/model_fits/regional-ES-jk-norm-sigma-ts.Rdata')
+load('~/Dropbox/1current/spatial_composition_change/data/all_meta-new.Rdata')
 
 # fix one name for joining data
 all_meta <- all_meta %>% 
@@ -22,11 +24,11 @@ all_meta <- all_meta %>%
                                  'i_Lee', regional_level))
 
 set.seed(101)
-anti_ts_local <- gather_draws(local_ES_norm_sigma_ts_anti, b_Intercept) %>% 
+anti_ts_local <- gather_draws(local_ES_norm_sigma2_ts_anti, b_Intercept) %>% 
   # 90% credible interval of intercept
   median_qi(.width = 0.9)  
 
-anti_ts_regional <- gather_draws(regional_ES_jk_norm_sigma_ts_anti, b_Intercept) %>% 
+anti_ts_regional <- gather_draws(regional_ES_jk_norm_sigma2_ts_anti, b_Intercept) %>% 
   median_qi(.width = 0.9)
 
 anti_ts_intercept <- bind_cols(anti_ts_local %>% 
@@ -42,11 +44,11 @@ anti_ts_intercept <- bind_cols(anti_ts_local %>%
 
 
 
-ts_local <- gather_draws(local_ES_norm_sigma_ts, b_Intercept) %>% 
+ts_local <- gather_draws(local_ES_norm_sigma2_ts, b_Intercept) %>% 
   # 90% credible interval of intercept
   median_qi(.width = 0.9)  
 
-ts_regional <- gather_draws(regional_ES_jk_norm_sigma_ts, b_Intercept) %>% 
+ts_regional <- gather_draws(regional_ES_jk_norm_sigma2_ts, b_Intercept) %>% 
   median_qi(.width = 0.9)
 
 ts_intercept <- bind_cols(ts_local %>% 
@@ -87,7 +89,7 @@ ggplot() +
   labs(y = expression(paste(gamma-scale, ' effect size [log(S) / year]')),
        x = expression(paste(alpha-scale, ' effect size [log(S) / year]')),
        # tag = '(b)',
-       subtitle = expression(paste('Models fit where time series data available (n = 165)'))
+       subtitle = expression(paste('Models fit where \ntime series data available (n = 229)'))
        ) +
   coord_fixed() +
   theme_minimal() +
@@ -121,7 +123,7 @@ anti_ts_two_scale <-
   labs(y = expression(paste(gamma-scale, ' effect size [log(S) / year]')),
        x = expression(paste(alpha-scale, ' effect size [log(S) / year]')),
        # tag = 'a',
-       title = expression(paste('Models fit to data with only two time points (n = 172)'))
+       title = expression(paste('Models fit to data with only\ntwo time points (n = 298)'))
        ) +
   coord_fixed() +
   theme_minimal() +
@@ -132,20 +134,22 @@ anti_ts_two_scale <-
         axis.title.y = element_blank()) 
 
 # beta-diversity
+# function to calculate distance of a point (x,y) to 1:1 line
 source('~/Dropbox/1current/spatial_composition_change/WhittakerBetaChange/analysis/dist2line.R')
-# use full posterior of the overall intercept estimates estimates
-ts_d <- bind_cols(gather_draws(local_ES_norm_sigma_ts, b_Intercept) %>%
+
+# use full posterior of the overall intercept estimates 
+ts_d <- bind_cols(gather_draws(local_ES_norm_sigma2_ts, b_Intercept, ndraws = 4000) %>%
                          ungroup() %>%
                          select(x = .value),
-                       gather_draws(regional_ES_jk_norm_sigma_ts, b_Intercept, ndraws = 4000) %>%
+                       gather_draws(regional_ES_jk_norm_sigma2_ts, b_Intercept, ndraws = 4000) %>%
                          ungroup() %>%
                          select(y = .value)) %>%
   mutate(d = dist2line(x, y))
 
-anti_ts_d <- bind_cols(gather_draws(local_ES_norm_sigma_ts_anti, b_Intercept) %>%
+anti_ts_d <- bind_cols(gather_draws(local_ES_norm_sigma2_ts_anti, b_Intercept, ndraws = 4000) %>%
                     ungroup() %>%
                     select(x = .value),
-                  gather_draws(regional_ES_jk_norm_sigma_ts_anti, b_Intercept, ndraws = 4000) %>%
+                  gather_draws(regional_ES_jk_norm_sigma2_ts_anti, b_Intercept, ndraws = 4000) %>%
                     ungroup() %>%
                     select(y = .value)) %>%
   mutate(d = dist2line(x, y))
@@ -157,10 +161,10 @@ fig3_beta_ts <-
                point_interval = median_qi,
                .width = c(0.50, 0.9)) +
   geom_vline(xintercept = 0, lty = 2, colour = '#bdbdbd') +
-  geom_label(aes(x = -0.003, y = 0.85, label = 'Homogenisation'),
-             size = 3.5) +
-  geom_label(aes(x = 0.003, y = 0.85, label = 'Differentiation'),
-             size = 3.5) +
+  # geom_label(aes(x = -0.003, y = 0.9, label = 'Homogenisation'),
+  #            size = 3.5) +
+  # geom_label(aes(x = 0.003, y = 0.9, label = 'Differentiation'),
+  #            size = 3.5) +
   labs(x = expression(paste(Delta, beta, ' - diversity . ', year^-1)),
        y = '',
        # tag = 'd'
@@ -184,8 +188,8 @@ fig3_beta_anti_ts <-
                point_interval = median_qi,
                .width = c(0.50, 0.9)) +
   geom_vline(xintercept = 0, lty = 2, colour = '#bdbdbd') +
-  geom_label(aes(x = -0.003, y = 0.85, label = 'Homogenisation'),
-             size = 3.5) +
+  # geom_label(aes(x = -0.003, y = 0.95, label = 'Homogenisation'),
+  #            size = 3.5) +
   # geom_label(aes(x = 0.003, y = 0.85, label = 'Differentiation'),
   #            size = 3.5) +
   labs(x = expression(paste(Delta, beta, ' - diversity . ', year^-1)),
@@ -207,28 +211,28 @@ fig3_beta_anti_ts <-
 plot_grid(
   plot_grid(anti_ts_two_scale,
           fig3_beta_anti_ts,
-          labels = c('a', 'b')),
+          labels = c('A', 'B')),
   plot_grid(ts_two_scale,
             fig3_beta_ts,
-            labels = c('c', 'd')),
+            labels = c('C', 'D')),
   nrow = 2)
 
 # local
 ggsave('~/Dropbox/1current/spatial_composition_change/figures/results/FigS3.pdf',
-       width = 255,  height = 255, units = 'mm')
+       width = 184,  height = 184, units = 'mm')
 
 # need regional variation to examine relationship with spatial and temporal scale
-ts_local_posterior_ES <- local_ES_norm_sigma_ts$data %>% 
-  add_predicted_draws(object = local_ES_norm_sigma_ts, ndraws = 1000)
+ts_local_posterior_ES <- local_ES_norm_sigma2_ts$data %>% 
+  add_predicted_draws(object = local_ES_norm_sigma2_ts, ndraws = 1000)
 
-anti_ts_local_posterior_ES <- local_ES_norm_sigma_ts_anti$data %>% 
-  add_predicted_draws(object = local_ES_norm_sigma_ts_anti, ndraws = 1000)
+anti_ts_local_posterior_ES <- local_ES_norm_sigma2_ts_anti$data %>% 
+  add_predicted_draws(object = local_ES_norm_sigma2_ts_anti, ndraws = 1000)
 
-ts_regional_posterior_ES <- regional_ES_jk_norm_sigma_ts$data %>% 
-  add_predicted_draws(object = regional_ES_jk_norm_sigma_ts, ndraws = 1000)
+ts_regional_posterior_ES <- regional_ES_jk_norm_sigma2_ts$data %>% 
+  add_predicted_draws(object = regional_ES_jk_norm_sigma2_ts, ndraws = 1000)
 
-anti_ts_regional_posterior_ES <- regional_ES_jk_norm_sigma_ts_anti$data %>% 
-  add_predicted_draws(object = regional_ES_jk_norm_sigma_ts_anti, ndraws = 1000)
+anti_ts_regional_posterior_ES <- regional_ES_jk_norm_sigma2_ts_anti$data %>% 
+  add_predicted_draws(object = regional_ES_jk_norm_sigma2_ts_anti, ndraws = 1000)
 
 ts_regional_d <- bind_cols(ts_local_posterior_ES %>% 
                              ungroup() %>% 
@@ -303,7 +307,8 @@ concept_colour = c('Gain low occupancy' = '#61CDE0',
                    'High occupancy replace low' = '#E9AE27',
                    'Gain high occupancy' = '#D9D956')
 
-col_shape_leg_plot <- left_join(regional_d_summary,
+# first, a plot to create the legend
+col_shape_leg_plot <- left_join(anti_ts_regional_d_summary,
                                 local_ES_norm_sigma2$data %>% 
                                   distinct(regional_level, sample_type, logdt)) %>% 
   mutate(dt = exp(logdt)) %>% 
@@ -318,24 +323,28 @@ col_shape_leg_plot <- left_join(regional_d_summary,
                      trans = 'log10') + 
   labs(y = expression(paste(Delta, beta, ' - diversity . ', year^-1))) +
   scale_color_manual(#guide = 'none',
-    name = 'Occupancy change',
+    name = '',
     values = concept_colour) +
   scale_shape_manual(#guide = 'none',
-    name = 'Sample type', values = c('checklist' = 17,
+    name = '', values = c('checklist' = 17,
                                      'resurvey' = 19)) +
   theme_minimal() +
-  theme(legend.position = 'top')
+  theme(legend.position = 'top') +
+  guides(shape = guide_legend(nrow = 2))
 
+# function to get legend from ggplot object
 source('~/Dropbox/1current/R_random/functions/gg_legend.R')
 col_shape_leg <- gg_legend(col_shape_leg_plot)
 
 
 anti_ts_beta_dt <-
 left_join(anti_ts_regional_d_summary,
-          local_ES_norm_sigma_ts_anti$data %>% 
+          local_ES_norm_sigma2_ts_anti$data %>% 
             distinct(regional_level, logdt)) %>% 
   mutate(dt = exp(logdt)) %>% 
   left_join(all_meta) %>% 
+  # remove four regions with large effect sizes
+  filter(abs(d_mu) < 0.05) %>%
   ggplot() +
   geom_hline(yintercept = 0, lty = 2) + 
   geom_point(aes(x = dt, y = d_mu, colour = concept,
@@ -364,8 +373,6 @@ left_join(anti_ts_regional_d_summary,
   theme_minimal() +
   theme(legend.position = 'top')
 
-# source('~/Dropbox/1current/R_random/functions/gg_legend.R')
-# col_shape_leg <- gg_legend(anti_ts_beta_dt)
 
 anti_ts_beta_extent <-
 left_join(anti_ts_regional_d_summary,
@@ -375,11 +382,9 @@ left_join(anti_ts_regional_d_summary,
   # nudge zero extents so they plot ok
   mutate(gamma_extent_km2 = case_when(gamma_extent_km2==0 ~ 0.0001,
                                       TRUE ~ as.numeric(gamma_extent_km2))) %>% 
-  # mutate(sample_type = case_when(regional_level %in% true_resurvey$regional_level ~
-  #                                  'true resurvey',
-  #                                TRUE ~ as.character(sample_type))) %>% 
+  # remove four regions with large effect sizes
+  filter(abs(d_mu) < 0.05) %>%
   ggplot() +
-  # facet_wrap(~realm) +
   geom_hline(yintercept = 0, lty = 2) + 
   geom_point(aes(x = gamma_extent_km2, y = d_mu, 
                  colour = concept,
@@ -387,9 +392,6 @@ left_join(anti_ts_regional_d_summary,
                  shape = sample_type,
                  alpha = sample_type
   ), size = 2, colour = 'black') + 
-  # stat_smooth(aes(x = gamma_extent_km2, y = d_mu,
-  #                 linetype = sample_type),
-  #             colour = 'black') +
   scale_x_continuous(trans = 'log10', name = 'Spatial extent [km2]') +
   labs(y = expression(paste(Delta, beta, ' - diversity . ', year^-1))) +
   scale_color_manual(guide = 'none',
@@ -411,10 +413,12 @@ left_join(anti_ts_regional_d_summary,
 
 ts_beta_dt <-
 left_join(ts_regional_d_summary,
-          local_ES_norm_sigma_ts$data %>% 
+          local_ES_norm_sigma2_ts$data %>% 
             distinct(regional_level, logdt)) %>% 
   mutate(dt = exp(logdt)) %>% 
   left_join(all_meta) %>% 
+  # remove one region with large ES (has short duration and small extent)
+  filter(abs(d_mu) < 0.05) %>%
   ggplot() +
   geom_hline(yintercept = 0, lty = 2) + 
   geom_point(aes(x = dt, y = d_mu, colour = concept,
@@ -450,11 +454,8 @@ ts_beta_extent <-
   # nudge zero extents so they plot ok
   mutate(gamma_extent_km2 = case_when(gamma_extent_km2==0 ~ 0.0001,
                                       TRUE ~ as.numeric(gamma_extent_km2))) %>% 
-  # mutate(sample_type = case_when(regional_level %in% true_resurvey$regional_level ~
-  #                                  'true resurvey',
-  #                                TRUE ~ as.character(sample_type))) %>% 
+  filter(abs(d_mu) < 0.05) %>%
   ggplot() +
-  # facet_wrap(~realm) +
   geom_hline(yintercept = 0, lty = 2) + 
   geom_point(aes(x = gamma_extent_km2, y = d_mu, 
                  colour = concept,
@@ -485,25 +486,25 @@ anti_ts_combined <-
   plot_grid(col_shape_leg,
           plot_grid(anti_ts_beta_dt, 
                     anti_ts_beta_extent,
-                    nrow = 1, labels = c('a', 'b')),
+                    nrow = 1, labels = c('A', 'B')),
                                  rel_heights = c(0.4, 1),
                                  nrow = 2, align = 'hv') +
-  cowplot::draw_label(label = 'Models fit to data with only two time points (n = 172)',
+  cowplot::draw_label(label = 'Models fit to data with only two time points (n = 298)',
                       x = 0.01, y = 0.99, hjust = 0, vjust = 1)
 
 ts_combined <-
   plot_grid(NULL,
             plot_grid(ts_beta_dt, 
                       ts_beta_extent,
-                      nrow = 1, labels = c('c', 'd')),
+                      nrow = 1, labels = c('C', 'D')),
             rel_heights = c(0.1, 1),
             nrow = 2, align = 'hv') +
-  cowplot::draw_label(label = 'Models fit where time series data available (n = 165)',
+  cowplot::draw_label(label = 'Models fit where time series data available (n = 229)',
                       x = 0.01, y = 0.99, hjust = 0, vjust = 1)
 
 plot_grid(anti_ts_combined,
           ts_combined, nrow = 2)
 
-ggsave('~/Dropbox/1current/spatial_composition_change/figures/results/FigS5.pdf',
-       width = 290,  height = 200, units = 'mm')
+ggsave('~/Dropbox/1current/spatial_composition_change/figures/results/FigS6.pdf',
+       width = 184,  height = 180, units = 'mm')
 

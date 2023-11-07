@@ -5,8 +5,8 @@ library(tidybayes)
 library(cowplot)
 
 
-load('~/Dropbox/1current/spatial_composition_change/results/model_fits/local-es-norm-sigma2-30871399.Rdata')
-load('~/Dropbox/1current/spatial_composition_change/results/model_fits/regional-es-jk-norm-sigma2-30871398.Rdata')
+load('~/Dropbox/1current/spatial_composition_change/results/model_fits/local-ES-norm-sigma-641269.Rdata')
+load('~/Dropbox/1current/spatial_composition_change/results/model_fits/regional-ES-jk-norm-sigma.Rdata')
 
 
 dt <- local_ES_norm_sigma2$data %>% 
