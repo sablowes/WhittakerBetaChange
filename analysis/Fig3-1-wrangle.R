@@ -149,3 +149,15 @@ two_scales <- slopes_regional_variation %>%
   bind_cols(slopes_global_level %>% 
               slice(rep(1:n(), times = nrow(regional_levels)))) %>% 
   select(-data)
+
+# use regional-level posteriors to calculate regional beta-diversity change
+regional_d <-slopes_regional_variation %>% 
+  unnest(cols = c(local_S, local_S_PIE, #local_eH
+                  regional_S, regional_S_PIE)) %>%
+  # need to add global slope estimate to departures
+  bind_cols(slopes_global_level %>% 
+              slice(rep(1:n(), times = nrow(regional_levels)))) %>% #regional_eH, 
+  mutate(dS = (regional_S + regional_S_global) - 
+           (local_S + local_S_global),
+         d_S_PIE = (regional_S_PIE + regional_S_PIE_global) -
+           (local_S_PIE + local_S_PIE_global)) 

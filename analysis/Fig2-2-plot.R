@@ -63,14 +63,7 @@ full_concept <-
                  shape = sample_type, 
                  alpha = sample_type),#
              size = 2, colour = 'black'
-             ) + #
-  # geom_point(data = overall_intercept,
-  #            aes(x = local_intercept, y = regional_intercept), size = 2.25) +
-  # geom_linerange(data = overall_intercept,
-  #                aes(x = local_intercept, ymin = regional_Q05, ymax = regional_Q95)) +
-  # geom_linerange(data = overall_intercept,
-  #                aes(y = regional_intercept, xmin = local_Q05, xmax = local_Q95)) +
-  # 
+             ) + 
   scale_color_manual(guide = 'none', values = concept_colour_special) +
   scale_fill_manual(guide = 'none', values = concept_colour_special) +
   scale_alpha_manual(name = 'Sample type',
@@ -81,16 +74,6 @@ full_concept <-
                                                       'resurvey' = 21)) +
   labs(y = expression(paste(Delta, gamma, '  [log(', S[t2], '/', S[t1],') . ', year^-1,']')),
        x = expression(paste(Delta, alpha, '  [log(', S[t2], '/', S[t1],') . ', year^-1,']'))) +
-    # annotate(geom = 'text', 
-    #          label = expression(paste(Delta, italic(S)[gamma])),
-    #          x = 0, y = Inf, parse = T,
-    #          hjust = 1.25, vjust = 1) +
-    # annotate(geom = 'text', 
-    #          label = expression(paste(Delta, italic(S)[alpha])),
-    #          x = Inf, y = 0, parse = T,
-    #          hjust = 1,
-    #          vjust = 1.25
-    # ) + 
   scale_x_continuous(breaks = c(-0.1,  -0.05, 0, 0.05, 0.1)) +
   scale_y_continuous(breaks = c(-0.1,  -0.05, 0, 0.05, 0.1)) +
   # coord_fixed() +
@@ -105,43 +88,6 @@ full_concept <-
         axis.text = element_text(size = 12),
         axis.title = element_text(size = 14))
 
-x_density <- ggplot() +
-  geom_density(data = pattern_summary %>% filter(local_mu.i < 0.1),
-               aes(x = local_mu.i), 
-               fill = 'grey', colour = 'grey',
-               alpha = 0.75) +
-  scale_x_continuous(breaks = c(-0.05,  -0.025, 0, 0.025, 0.05)) +
-  geom_vline(xintercept = 0, lty = 2, colour = '#969696') +
-  theme_minimal() +
-  theme(panel.grid.major.y = element_blank(),
-        panel.grid.minor.y = element_blank(),
-        plot.background = element_rect(fill = 'white', color = 'white', linetype = 0),
-        panel.border = element_blank(),
-        panel.background = element_blank(),
-        panel.grid = element_blank(),
-        axis.text = element_text(size = 11),
-        axis.title = element_text(size = 11))
-
-y_density <- ggplot() +
-  geom_density(data = pattern_summary %>% filter(local_mu.i < 0.1),
-               aes(x = regional_mu.i),
-               fill = 'grey', colour = 'grey',
-               alpha = 0.75) +
-  geom_vline(xintercept = 0, lty = 2, colour = '#969696') +
-  scale_x_continuous(breaks = c(-0.1, -0.05, 0, 0.05, 0.1)) +
-  coord_flip() +
-  theme_minimal() +
-  theme(panel.grid.major.x = element_blank(),
-        panel.grid.minor.x = element_blank(),
-        plot.background = element_rect(fill = 'white', color = 'white', linetype = 0),
-        panel.border = element_blank(),
-        panel.background = element_blank(),
-        panel.grid = element_blank(),
-        axis.text = element_text(size = 10),
-        axis.title = element_text(size = 10))
-
-combine1 <- insert_xaxis_grob(full_concept, x_density, position = "top")
-combine2 <- insert_yaxis_grob(combine1, y_density, position = "right")
 
 alt_inset_zoom <-
 full_concept +
@@ -158,14 +104,6 @@ full_concept +
         panel.border = element_blank(),
         plot.margin = unit(c(0,0,0,0), units = 'mm'))
 # combine components
-fig3a <-
-ggdraw() +
-  draw_plot(combine2) +
-  draw_image('~/Dropbox/1current/spatial_composition_change/figures/for-publication/concept_only_inset_white.png',
-             x = -0.175, y = 0.2, 
-             scale = 0.275) 
-
-  
 alt_A <-
   full_concept +  
   annotation_custom(ggplotGrob(alt_inset_zoom +
@@ -180,26 +118,15 @@ alt_A <-
                   xmin = -0.115, xmax = 0, ymin = 0.0275, ymax = 0.12)
 
   
-  
-dist2line = function(x, y, a = 1, b = -1){
-  # calculate distance from line: ax + by + c 
-  # to vector of points(x, y)
-  # NB: here line is 1:1 so c = 0, a = 1, b = -1
-  
-  numerator = -(a*x + b*y) # negative distance means point below line 
-                           # (homogenisation change beta-diversity < 0)
-  denom = sqrt(a^2 + b^2)
-  return(numerator / denom)
-}
-
-# use full posterior of the overall intercept estimates estimates
+# use full posterior of the overall intercept estimates to calculate average rate of 
+# change in beta-diversity (d)
 overall_d <- bind_cols(gather_draws(local_ES_norm_sigma2, b_Intercept, ndraws = 4000) %>%
                          ungroup() %>%
                          select(x = .value),
                        gather_draws(regional_ES_jk_norm_sigma2, b_Intercept, ndraws = 4000) %>%
                          ungroup() %>%
                          select(y = .value)) %>%
-  mutate(d = dist2line(x, y))
+  mutate(d = y - x)
 
 fig3_beta <-
 ggplot() +
@@ -208,8 +135,8 @@ ggplot() +
                point_interval = median_qi,
                .width = c(0.50, 0.9)) +
   geom_vline(xintercept = 0, lty = 2, colour = '#969696') +
-  scale_x_continuous(breaks = seq(from = -0.005, to = 0.001, by = 0.001),
-                     labels = c('', '-0.004', '', '-0.002', '', '0', '')) +
+  scale_x_continuous(breaks = seq(from = -0.006, to = 0, by = 0.001),
+                     labels = c('-0.006', '', '', '-0.003', '', '', '0')) +
   labs(x = expression(paste(Delta, beta, ' - diversity . ', year^-1)),
        y = '') +
   theme_minimal() +
@@ -224,13 +151,6 @@ ggplot() +
         plot.margin = unit(c(2,4,2,2), units = 'mm'))
 
 
-# concept + beta-diversity (with density plots of ES)
-# top_simple <- plot_grid(fig3a, fig3_beta, 
-#           nrow = 1, labels = 'AUTO',
-#           rel_widths = c(1, 1))
-# 
-# ggsave('~/Dropbox/1current/spatial_composition_change/figures/results/Fig2.pdf',
-#        width = 184, height = 100, units = 'mm')
 
 # with zoom inset, and no density plots of ES (to better show variation in
 # scatter plot)
@@ -241,3 +161,7 @@ plot_grid(alt_A, fig3_beta,
 ggsave('~/Dropbox/1current/spatial_composition_change/figures/results/Fig2.pdf',
        width = 184, height = 100, units = 'mm')
 
+overall_d %>% 
+  summarise(median(dS),
+            quantile(dS, 0.05),
+            quantile(dS, 0.95))

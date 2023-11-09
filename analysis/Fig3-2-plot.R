@@ -1,22 +1,10 @@
 library(cowplot)
+
 # plot beta-diversity from time series models fit at local and regional scales
-
-dist2line = function(x, y, a = 1, b = -1){
-  # calculate distance from line: ax + by + c 
-  # to vector of points(x, y)
-  # NB: here line is 1:1 so c = 0, a = 1, b = -1
-  
-  numerator = -(a*x + b*y) # negative distance means point below line 
-  # (homogenisation change beta-diversity < 0)
-  denom = sqrt(a^2 + b^2)
-  return(numerator / denom)
-}
-
 # use full posterior of the overall slope estimates
 overall_d <-slopes_global_level %>% 
-  mutate(dS = dist2line(local_S_global, regional_S_global),
-         # d_eH = dist2line(local_eH_global, regional_eH_global),
-         d_S_PIE = dist2line(local_S_PIE_global, regional_S_PIE_global))
+  mutate(dS = regional_S_global - local_S_global,
+         d_S_PIE = regional_S_PIE_global - local_S_PIE_global)
 
 order_q_beta <-
   ggplot() +
@@ -48,6 +36,9 @@ order_q_beta <-
                                 'q = 2' = 17),
                      labels = c('q = 0' = 'Species\nrichness (S)',
                                 'q = 2' = 'ENS')) +
+  scale_x_continuous(breaks = seq(from = -0.005, to = 0.01, by = 0.001),
+                     labels = c('-0.005', '', '', '', '', '0', '', '' , '', 
+                                '', '0.005', '', '', '', '', '0.01')) +
   labs(x = expression(paste(Delta, beta, ' - diversity . ', year^-1)),
        y = '') +
   theme_minimal() +
@@ -183,21 +174,7 @@ plot_grid(legend,
           nrow = 2,
           rel_heights = c(0.05, 1))
 
-# use regional-level posteriors to examine potential covariates
-regional_d <-slopes_regional_variation %>% 
-  unnest(cols = c(local_S, local_S_PIE, #local_eH
-                  regional_S, regional_S_PIE)) %>%
-  # need to add global slope estimate to departures
-  bind_cols(slopes_global_level %>% 
-              slice(rep(1:n(), times = nrow(regional_levels)))) %>% #regional_eH, 
-  mutate(dS = dist2line((local_S + local_S_global), 
-                        (regional_S + regional_S_global)),
-         # d_eH = dist2line(local_eH, regional_eH),
-         d_S_PIE = dist2line((local_S_PIE + local_S_PIE_global), 
-                             (regional_S_PIE + regional_S_PIE_global))) 
-
-
-
+#
 forest_q0_3scales <-
 ggplot() +
   # facet_wrap(~realm) + 
@@ -309,14 +286,6 @@ forest_q2_3scales <- ggplot() +
                       labels = c(expression(paste(alpha-scale)),
                                  expression(paste(beta-scale)),
                                  expression(paste(gamma-scale)))) +
-  # scale_shape_manual(guide = 'none',
-  #   name = 'Scale',
-  #   values = c('alpha-scale' = 15,
-  #              'beta-scale' = 19,
-  #              'gamma-scale' = 17),
-  #   labels = c(expression(paste(alpha-scale)),
-  #              expression(paste(beta-scale)),
-  #              expression(paste(gamma-scale)))) +
   labs(x = expression(paste('Change in diversity', ' [log(ENS) / year]')),
        y = 'Region') +
   theme_minimal() + 
@@ -357,19 +326,6 @@ three_scale_leg <- ggplot() +
 
 scale_leg <- gg_legend(three_scale_leg)
 
-
-plot_grid(test0, 
-          test2,
-          forest_q0_3scales, 
-          forest_q2_3scales,
-          nrow = 2,
-          align = 'v',
-          rel_heights = c(0.15, 1))
-
-ggsave('~/Dropbox/1current/spatial_composition_change/figures/results/Fig3-alt1.pdf',
-       width = 184, height = 227.5, units = 'mm')
-
-
 left <- plot_grid(scale_leg,
           plot_grid(forest_q0_3scales +
                       theme(axis.title = element_text(size = 8)),
@@ -399,3 +355,5 @@ plot_grid(left, right,
 
 ggsave('~/Dropbox/1current/spatial_composition_change/figures/results/Fig3.pdf',
        width = 184, height = 199, units = 'mm')
+
+overall_d

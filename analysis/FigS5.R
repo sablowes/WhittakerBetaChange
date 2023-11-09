@@ -1,4 +1,8 @@
-# results from simplest two-stage analysis: overall intercept-only model fit to the log-ratio / duration (ES)
+# code to plot residual variation model from simplest two-stage analysis: 
+# overall intercept-only model fit to the log-ratio / duration (ES),
+# with residual variation as a function of log(duration) and sample type
+# (checklist or resurvey)
+
 library(tidyverse)
 library(brms)
 library(tidybayes)

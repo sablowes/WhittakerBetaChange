@@ -8,7 +8,7 @@ library(cowplot)
 
 load('~/Dropbox/1current/spatial_composition_change/results/model_fits/local-ES-norm-sigma-ts-anti-730659.Rdata')
 load('~/Dropbox/1current/spatial_composition_change/results/model_fits/regional-ES-jk-norm-sigma-ts-anti.Rdata')
-load('~/Dropbox/1current/spatial_composition_change/data/all_meta.Rdata')
+load('~/Dropbox/1current/spatial_composition_change/data/all_meta-new.Rdata')
 
 set.seed(101)
 local_overall_post <- gather_draws(local_ES_norm_sigma2_ts_anti, b_Intercept) %>% 

@@ -132,3 +132,23 @@ concept_colour = c('Gain low occupancy' = '#61CDE0',
                    'High occupancy replace low' = '#E9AE27',
                    'Gain high occupancy' = '#D9D956')
 
+
+# use regional-level posteriors to calculate regional beta-diversity change
+regional_d <- bind_cols(local_posterior_ES %>% 
+                                  ungroup() %>% 
+                                  select(regional_level, local_dS) %>% 
+                                  group_by(regional_level) %>% 
+                                  sample_n(1000) %>% 
+                                  ungroup() %>% 
+                                  rename(regional.x = regional_level),
+                        regional_posterior %>% 
+                                  ungroup() %>% 
+                                  select(regional_level, regional_dS) %>% 
+                                  group_by(regional_level) %>% 
+                                  sample_n(1000) %>% 
+                                  ungroup() %>%
+                                  rename(regional.y = regional_level)) %>%
+  filter(regional.x==regional.y) %>% 
+  mutate(d = regional_dS - local_dS) %>% 
+  rename(regional_level = regional.x) %>% 
+  select(-regional.y)

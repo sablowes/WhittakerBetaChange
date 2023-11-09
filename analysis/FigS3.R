@@ -1,28 +1,8 @@
 # code to plot Fig. S3
 # wrangle posterior
 source('~/Dropbox/1current/spatial_composition_change/WhittakerBetaChange/analysis/Fig2-1-wrangle.R')
-# function to calculate distance from 1:1 line
-source('~/Dropbox/1current/spatial_composition_change/WhittakerBetaChange/analysis/dist2line.R')
 
 # forest plots (i.e., model estimates at each scale for each region)
-# need to calculate distance for each region
-regional_d <- bind_cols(local_posterior_ES %>% 
-                          select(regional_level, local_dS) %>% 
-                          group_by(regional_level) %>% 
-                          sample_n(1000) %>% 
-                          ungroup() %>% 
-                          rename(regional.x = regional_level),
-                        regional_posterior %>% 
-                          select(regional_level, regional_dS) %>% 
-                          group_by(regional_level) %>% 
-                          sample_n(1000) %>% 
-                          ungroup() %>% 
-                          rename(regional.y = regional_level)) %>%
-  filter(regional.x==regional.y) %>% 
-  mutate(d = dist2line(local_dS, regional_dS)) %>% 
-  rename(regional_level = regional.x) %>% 
-  select(-regional.y)
-
 alpha_forest <- ggplot() +
   geom_linerange(data = pattern_summary,
                  aes(xmin = l05, xmax = l95, 
@@ -112,7 +92,7 @@ overall_d <- bind_cols(gather_draws(local_ES_norm_sigma2, b_Intercept, ndraws = 
                        gather_draws(regional_ES_jk_norm_sigma2, b_Intercept, ndraws = 4000) %>%
                          ungroup() %>%
                          select(y = .value)) %>%
-  mutate(d = dist2line(x, y))
+  mutate(d = y - x)
 
 regional_d_summary <- regional_d %>% 
   group_by(regional_level) %>% 

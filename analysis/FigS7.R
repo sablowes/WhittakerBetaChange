@@ -1,6 +1,8 @@
 ## figure S7: relationships between richness and diversity change
 ## across scales (alpha, gamma, beta)
+source('~/Dropbox/1current/spatial_composition_change/WhittakerBetaChange/analysis/Fig3-1-wrangle.R')
 
+# alpha scale
 alpha_metrics <- ggplot() + 
   geom_hline(yintercept = 0, lty = 2, colour = '#969696') +
   geom_vline(xintercept = 0, lty = 2, colour = '#969696') +
@@ -148,7 +150,8 @@ gamma_metrics <- ggplot() +
        y = '') +
   theme_minimal()
 
-right <- plot_grid(alpha_metrics + 
+# combine
+cowplot::plot_grid(alpha_metrics + 
                      labs(x = 'Change in effective number\nof species (common species)') +
                      theme(axis.title = element_text(size = 8)),
                    gamma_metrics + 
@@ -161,6 +164,6 @@ right <- plot_grid(alpha_metrics +
                      theme(axis.title = element_text(size = 8)),
                    nrow = 1,
                    labels = 'AUTO', align = 'hv')
-right
+# save
 ggsave('~/Dropbox/1current/spatial_composition_change/figures/results/FigS7.pdf',
        width = 184, height = 88, units = 'mm')
