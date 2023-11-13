@@ -24,17 +24,17 @@ order_q_beta <-
   scale_fill_manual(name = '',
                     values = c('q = 0' = '#525252',
                                'q = 2' = '#bdbdbd'),
-                    labels = c('q = 0' = 'Species\nrichness (S)',
+                    labels = c('q = 0' = 'S',
                                'q = 2' = 'ENS')) +
   scale_colour_manual(name = '',
                       values = c('q = 0' = '#525252',
                                  'q = 2' = '#bdbdbd'),
-                    labels = c('q = 0' = 'Species\nrichness (S)',
+                    labels = c('q = 0' = 'S',
                                'q = 2' = 'ENS')) +
   scale_shape_manual(name = '',
                      values = c('q = 0' = 15,
                                 'q = 2' = 17),
-                     labels = c('q = 0' = 'Species\nrichness (S)',
+                     labels = c('q = 0' = 'S',
                                 'q = 2' = 'ENS')) +
   scale_x_continuous(breaks = seq(from = -0.005, to = 0.01, by = 0.001),
                      labels = c('-0.005', '', '', '', '', '0', '', '' , '', 
@@ -42,7 +42,7 @@ order_q_beta <-
   labs(x = expression(paste(Delta, beta, ' - diversity . ', year^-1)),
        y = '') +
   theme_minimal() +
-  theme(legend.position = c(0.85,0.9),
+  theme(legend.position = 'top',
         legend.title = element_blank(),
         legend.key = element_blank(),
         axis.text.y = element_blank(),
@@ -114,14 +114,14 @@ ggplot() +
                       values = c('q = 0' = '#525252',
                                  # 'q = 1' = '#8e8e8e',
                                  'q = 2' = '#bdbdbd'),
-                      labels = c('q = 0' = 'Species richness (S)',
+                      labels = c('q = 0' = 'S',
                                  'q = 2' = 'ENS')) +
   scale_shape_manual(guide = 'none',
                      name = '',
                      values = c('q = 0' = 15,
                                 # 'q = 1' = 19,
                                 'q = 2' = 17),
-                     labels = c('q = 0' = 'Species richness (S)',
+                     labels = c('q = 0' = 'S',
                                 'q = 2' = 'ENS')) +
   scale_x_continuous(breaks = c(0, 0.002, 0.004), labels = c(0, 0.002, 0.004)) +
   labs(y = expression(paste(gamma-scale, ' [log(value) / year]')),
@@ -151,13 +151,13 @@ hleg <- ggplot() +
                       values = c('q = 0' = '#525252',
                                  # 'q = 1' = '#8e8e8e',
                                  'q = 2' = '#bdbdbd'),
-                      labels = c('q = 0' = 'Species richness (S)',
+                      labels = c('q = 0' = 'S',
                                  'q = 2' = 'ENS')) +
   scale_shape_manual(name = '',
                       values = c('q = 0' = 15,
                                  # 'q = 1' = 19,
                                  'q = 2' = 17),
-                     labels = c('q = 0' = 'Species richness (S)',
+                     labels = c('q = 0' = 'S',
                                 'q = 2' = 'ENS')) +
   theme(legend.direction = 'horizontal',
         legend.position = 'top', 
@@ -341,10 +341,12 @@ right <- plot_grid(NULL,
                                theme(axis.text = element_text(size = 8),
                                      axis.title = element_text(size = 10),
                                      legend.text = element_text(size = 8)), 
+                             NULL,
                              order_q_beta +
                                theme(legend.text = element_text(size = 8)),
-                             nrow = 2,
-                             labels = c('C', 'D')),
+                             nrow = 3,
+                             labels = c('C','', 'D'),
+                             rel_heights = c(1.3, 0.3, 1.3)),
                    NULL,
                    nrow = 4,
                    rel_heights = c(0.2,0.1, 1, 0.2))

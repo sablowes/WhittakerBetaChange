@@ -85,8 +85,8 @@ ggplot() +
                  y = regional_intercept),
              size = 3) +
   scale_fill_grey() +
-  # scale_x_continuous(breaks = c(0, 0.002, 0.004, 0.006)) +
-  # scale_y_continuous(breaks = c(0, 0.002, 0.004, 0.006)) +
+  scale_x_continuous(breaks = c(0, 0.002, 0.004, 0.006)) +
+  scale_y_continuous(breaks = c(0, 0.002, 0.004, 0.006)) +
   labs(y = expression(paste(gamma-scale, ' effect size [log(S) / year]')),
        x = expression(paste(alpha-scale, ' effect size [log(S) / year]')),
        # tag = '(b)',
@@ -95,7 +95,7 @@ ggplot() +
   coord_fixed() +
   theme_minimal() +
   theme(plot.background = element_rect(fill = 'white', color = 'white', linetype = 0),
-        panel.grid = element_blank(),
+        panel.grid.minor = element_blank(),
         axis.text = element_text(size = 8),
         axis.title.x = element_blank(),
         axis.title.y = element_blank()) 
@@ -126,10 +126,12 @@ anti_ts_two_scale <-
        # tag = 'a',
        title = expression(paste('Models fit to data with only\ntwo time points (n = 298)'))
        ) +
+  scale_x_continuous(breaks = c(0, 3e-3, 6e-3)) +
+  scale_y_continuous(breaks = c(0, 3e-4, 6e-4)) +
   coord_fixed() +
   theme_minimal() +
   theme(plot.background = element_rect(fill = 'white', color = 'white', linetype = 0),
-        panel.grid = element_blank(),
+        panel.grid.minor = element_blank(),
         axis.text = element_text(size = 8),
         axis.title.x = element_blank(),
         axis.title.y = element_blank()) 
