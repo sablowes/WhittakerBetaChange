@@ -96,9 +96,7 @@ ggplot() +
   theme_minimal() +
   theme(plot.background = element_rect(fill = 'white', color = 'white', linetype = 0),
         panel.grid.minor = element_blank(),
-        axis.text = element_text(size = 8),
-        axis.title.x = element_blank(),
-        axis.title.y = element_blank()) 
+        axis.text = element_text(size = 8)) 
 
 anti_ts_two_scale <-
   ggplot() +
@@ -132,9 +130,7 @@ anti_ts_two_scale <-
   theme_minimal() +
   theme(plot.background = element_rect(fill = 'white', color = 'white', linetype = 0),
         panel.grid.minor = element_blank(),
-        axis.text = element_text(size = 8),
-        axis.title.x = element_blank(),
-        axis.title.y = element_blank()) 
+        axis.text = element_text(size = 8)) 
 
 # beta-diversity
 # use full posterior of the overall intercept estimates 
