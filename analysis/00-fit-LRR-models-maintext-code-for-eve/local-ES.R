@@ -3,7 +3,7 @@ library(tidyverse)
 library(brms)
 
 
-load('/data/idiv_chase/sablowes/homogenisation/data/allLRR_meta.Rdata')
+load('/data/idiv_chase/sablowes/homogenisation/data/allLRR_meta-new.Rdata')
 
 
 local_ES_norm_sigma2 <- brm(bf(ES ~ 1 + (1 | regional_level),

@@ -3,7 +3,8 @@ library(tidyverse)
 library(brms)
 
 
-load('/data/idiv_chase/sablowes/homogenisation/data/allLRR_meta.Rdata')
+load('/data/idiv_chase/sablowes/homogenisation/data/allLRR_meta-new.Rdata')
+
 
 regional_jk_summary <- regional_jknife_LRR %>% 
   group_by(regional_level) %>% 

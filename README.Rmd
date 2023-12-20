@@ -61,8 +61,13 @@ https://github.com/chase-lab/homogenisation-richness
 
 **FigS7.R**: Code to plot Figure S7
 
+**xx-identify-studies-not-in-time-series-analysis.R**: Code to identify regions in the time series analyses. Due to poor naming choices, some regions changed names between the initial (two-time-point-only analysis) and the time series analyses. This code identifies the regions in the time series analysis, and was needed to identify the regions needed for the supplementary analysis (leading to Figure S4, S6).
 
 ## Data wrangle
 
 Each subfolder has the code used to standardise sampling effort for different sources of biodiversity data at two scales: a smaller (alpha) scale, and larger (gamma) scale. Two sets of data (each documenting the alpha and gamma scales) are compiled: (1) effect sizes of the rate of change in species richness, calculated as the log-ratio of richness at the two time points, divided by the number of years elapsed between richness observations; and, (2) time series of richness and a diversity metric related to Simpson's concentration. 
+
+## Data folder
+
+This folder has the final output of the wrangled data required to fit the models. Additional regions (datasets) that needed to be removed from the time series analyses are in regions2remove.Rdata file.
 

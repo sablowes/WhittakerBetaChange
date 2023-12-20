@@ -43,42 +43,16 @@ effort_check <- left_join(filtered_2timeOnly,
                           meta %>% 
                             select(dataset_id, year, regional, local, effort))
 
-# identify end-point samples with equal effort
-equal_effort <- left_join(effort_check %>% 
-                            filter(fyear=='start') %>% 
-                            mutate(effort1 = effort) %>% 
-                            distinct(dataset_id, regional, local, effort1),
-                          effort_check %>% 
-                            filter(fyear=='end') %>% 
-                            mutate(effort2 = effort) %>% 
-                            distinct(dataset_id, regional, local, effort2)) %>% 
-  filter(effort1==effort2)
-
-# unequal effort: 14 locations from 5 regions with unequal effort
-# (and it is not clear that we can do anything to standardise effort)
-unequal_effort <- left_join(effort_check %>% 
-                              filter(fyear=='start') %>% 
-                              mutate(effort1 = effort) %>% 
-                              distinct(dataset_id, regional, local, effort1),
-                            effort_check %>% 
-                              filter(fyear=='end') %>% 
-                              mutate(effort2 = effort) %>% 
-                              distinct(dataset_id, regional, local, effort2)) %>% 
+# no start and end samples have unequal effort
+left_join(effort_check %>% 
+            filter(fyear=='start') %>% 
+            mutate(effort1 = effort) %>% 
+            distinct(dataset_id, regional, local, effort1),
+          effort_check %>% 
+            filter(fyear=='end') %>% 
+            mutate(effort2 = effort) %>% 
+            distinct(dataset_id, regional, local, effort2)) %>% 
   filter(effort1!=effort2)
-
-# # can we do anything about standardising effort for datasets where it is unequal
-filtered_2timeOnly %>%
-  filter(dataset_id %in% unique(unequal_effort$dataset_id)) %>%
-  distinct(dataset_id, regional, metric)
-
-ue_filter <- unequal_effort %>% 
-  distinct(dataset_id, regional, local) %>% 
-  unite(ue_remove, c(dataset_id, regional, local))
-
-filtered_2timeOnly <- filtered_2timeOnly %>% 
-  unite(ue_remove, c(dataset_id, regional, local), remove = FALSE) %>% 
-  filter(!ue_remove %in% ue_filter$ue_remove) %>% 
-  select(-ue_remove)
 
 # want to know number of species at each location for first and last observation in each region
 alpha <- filtered_2timeOnly %>%
