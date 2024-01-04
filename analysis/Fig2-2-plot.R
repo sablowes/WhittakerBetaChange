@@ -120,7 +120,7 @@ alt_A <-
   
 # use full posterior of the overall intercept estimates to calculate average rate of 
 # change in beta-diversity (d)
-overall_d <- bind_cols(gather_draws(local_ES_norm_sigma2, b_Intercept, ndraws = 4000) %>%
+overall_d <- bind_cols(gather_draws(local_ES_norm_sigma, b_Intercept, ndraws = 4000) %>%
                          ungroup() %>%
                          select(x = .value),
                        gather_draws(regional_ES_jk_norm_sigma2, b_Intercept, ndraws = 4000) %>%
@@ -162,6 +162,6 @@ ggsave('~/Dropbox/1current/spatial_composition_change/figures/results/Fig2.pdf',
        width = 184, height = 100, units = 'mm')
 
 overall_d %>% 
-  summarise(median(dS),
-            quantile(dS, 0.05),
-            quantile(dS, 0.95))
+  summarise(median(d),
+            quantile(d, 0.05),
+            quantile(d, 0.95))

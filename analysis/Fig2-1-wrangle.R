@@ -5,7 +5,7 @@ library(tidybayes)
 library(cowplot)
 
 
-load('~/Dropbox/1current/spatial_composition_change/results/model_fits/local-ES-norm-sigma-641269.Rdata')
+load('~/Dropbox/1current/spatial_composition_change/results/model_fits/local-ES-norm-sigma-3823365.Rdata')
 load('~/Dropbox/1current/spatial_composition_change/results/model_fits/regional-ES-jk-norm-sigma.Rdata')
 load('~/Dropbox/1current/spatial_composition_change/data/all_meta-new.Rdata')
 
@@ -15,7 +15,7 @@ all_meta <- all_meta %>%
                                  'i_Lee', regional_level))
 
 set.seed(101)
-local_overall_post <- gather_draws(local_ES_norm_sigma2, b_Intercept) %>% 
+local_overall_post <- gather_draws(local_ES_norm_sigma, b_Intercept) %>% 
   # 90% credible interval of intercept
   median_qi(.width = 0.9)  
 
@@ -33,8 +33,8 @@ overall_intercept <- bind_cols(local_overall_post %>%
                                         regional_Q05 = .lower) %>% 
                                  select(regional_intercept, regional_Q95, regional_Q05))
 
-local_posterior_ES <- local_ES_norm_sigma2$data %>% 
-  add_predicted_draws(object = local_ES_norm_sigma2, ndraws = 1000)
+local_posterior_ES <- local_ES_norm_sigma$data %>% 
+  add_predicted_draws(object = local_ES_norm_sigma, ndraws = 1000)
 
 local_summary_ES <- local_posterior_ES %>% 
   group_by(regional_level) %>% 

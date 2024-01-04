@@ -9,11 +9,11 @@ library(tidybayes)
 library(cowplot)
 
 
-load('~/Dropbox/1current/spatial_composition_change/results/model_fits/local-ES-norm-sigma-641269.Rdata')
+load('~/Dropbox/1current/spatial_composition_change/results/model_fits/local-ES-norm-sigma-3823365.Rdata')
 load('~/Dropbox/1current/spatial_composition_change/results/model_fits/regional-ES-jk-norm-sigma.Rdata')
 
 
-dt <- local_ES_norm_sigma2$data %>% 
+dt <- local_ES_norm_sigma$data %>% 
   as_tibble() %>% 
   mutate(dt = exp(logdt)) %>% 
   group_by(sample_type) %>% 
@@ -25,7 +25,7 @@ dt <- local_ES_norm_sigma2$data %>%
               values_from = min_dt:max_logdt)
   
 
-sigma_model_summary <- gather_draws(local_ES_norm_sigma2, 
+sigma_model_summary <- gather_draws(local_ES_norm_sigma, 
              b_sigma_Intercept,
              b_sigma_sample_typeresurvey,
              b_sigma_logdt,
@@ -47,7 +47,7 @@ sigma_model_summary <- gather_draws(local_ES_norm_sigma2,
               values_from = c(.value, .lower, .upper)) %>% 
   bind_cols(dt) 
 
-sigma_local_CI <- local_ES_norm_sigma2$data %>% 
+sigma_local_CI <- local_ES_norm_sigma$data %>% 
   as_tibble() %>%
   group_by(sample_type) %>% 
   modelr::data_grid(logdt, n = 51) %>% 

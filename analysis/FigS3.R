@@ -86,7 +86,7 @@ gamma_forest <- ggplot() +
 
 # use full posterior of the overall average rates of changes at the alpha- 
 # and gamma-scales to estimate average beta-scale change
-overall_d <- bind_cols(gather_draws(local_ES_norm_sigma2, b_Intercept, ndraws = 4000) %>%
+overall_d <- bind_cols(gather_draws(local_ES_norm_sigma, b_Intercept, ndraws = 4000) %>%
                          ungroup() %>%
                          select(x = .value),
                        gather_draws(regional_ES_jk_norm_sigma2, b_Intercept, ndraws = 4000) %>%

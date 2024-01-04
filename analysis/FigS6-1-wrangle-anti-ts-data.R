@@ -6,12 +6,12 @@ library(tidybayes)
 library(cowplot)
 
 
-load('~/Dropbox/1current/spatial_composition_change/results/model_fits/local-ES-norm-sigma-ts-anti-730659.Rdata')
+load('~/Dropbox/1current/spatial_composition_change/results/model_fits/local-ES-norm-sigma-ts-anti-3823550.Rdata')
 load('~/Dropbox/1current/spatial_composition_change/results/model_fits/regional-ES-jk-norm-sigma-ts-anti.Rdata')
 load('~/Dropbox/1current/spatial_composition_change/data/all_meta-new.Rdata')
 
 set.seed(101)
-local_overall_post <- gather_draws(local_ES_norm_sigma2_ts_anti, b_Intercept) %>% 
+local_overall_post <- gather_draws(local_ES_norm_sigma_ts_anti, b_Intercept) %>% 
   # 90% credible interval of intercept
   median_qi(.width = 0.9)  
 
@@ -29,8 +29,8 @@ overall_intercept <- bind_cols(local_overall_post %>%
                                         regional_Q05 = .lower) %>% 
                                  select(regional_intercept, regional_Q95, regional_Q05))
 
-local_posterior_ES <- local_ES_norm_sigma2_ts_anti$data %>% 
-  add_predicted_draws(object = local_ES_norm_sigma2_ts_anti, ndraws = 1000)
+local_posterior_ES <- local_ES_norm_sigma_ts_anti$data %>% 
+  add_predicted_draws(object = local_ES_norm_sigma_ts_anti, ndraws = 1000)
 
 local_summary_ES <- local_posterior_ES %>% 
   group_by(regional_level) %>% 

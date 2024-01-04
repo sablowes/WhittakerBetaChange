@@ -71,5 +71,5 @@ ggplot() +
 
 
 # two column fig Sci Adv
-ggsave('~/Dropbox/1current/spatial_composition_change/figures/results/FigS1.pdf',
+ggsave('~/Dropbox/1current/spatial_composition_change/figures/results/FigS2.pdf',
        width = 184, height = 150, units = 'mm')

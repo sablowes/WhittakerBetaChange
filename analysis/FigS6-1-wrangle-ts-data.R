@@ -6,7 +6,7 @@ library(cowplot)
 
 
 # load('~/Dropbox/1current/spatial_composition_change/results/model_fits/local-es-norm-sigma2-25428714.Rdata')
-load('~/Dropbox/1current/spatial_composition_change/results/model_fits/local-ES-norm-sigma-ts-730645.Rdata')
+load('~/Dropbox/1current/spatial_composition_change/results/model_fits/local-ES-norm-sigma-ts-3802034.Rdata')
 # load('~/Dropbox/1current/spatial_composition_change/results/model_fits/regional-es-jk-norm-sigma2-25428781.Rdata')
 load('~/Dropbox/1current/spatial_composition_change/results/model_fits/regional-ES-jk-norm-sigma-ts.Rdata')
 load('~/Dropbox/1current/spatial_composition_change/data/all_meta-new.Rdata')

@@ -3,9 +3,11 @@ library(tidyverse)
 library(brms)
 
 
-# load('/data/idiv_chase/sablowes/homogenisation/data/allLRR_meta.Rdata')
-load('~/Dropbox/1current/spatial_composition_change/results/allLRR_meta-new.Rdata')
-load('~/Dropbox/1current/spatial_composition_change/results/ts-regions.Rdata')
+
+load('~/Dropbox/1current/spatial_composition_change/WhittakerBetaChange/analysis/data/all_meta-new.Rdata')
+load('~/Dropbox/1current/spatial_composition_change/WhittakerBetaChange/analysis/data/allLRR_meta-new.Rdata')
+# id for regions in time series analyses
+load('~/Dropbox/1current/spatial_composition_change/WhittakerBetaChange/analysis/data/ts-regions.Rdata')
 
 regional_jk_summary <- regional_jknife_LRR %>% 
   group_by(regional_level) %>% 
@@ -61,7 +63,7 @@ regional_ES_jk_norm_sigma2_ts_anti <- brm(bf(ES_gamma ~ 1 + (1 | regional_level)
 			     mutate(logdt = log(dt),
 			            regional_level = ifelse(regional_level == 'i_Lee (Florida (United States))',
 			                                    'i_Lee', regional_level)) %>% 
-			     filter(regional_level %in% ts_regions$regional_level),
+			     filter(!regional_level %in% ts_regions$regional_level),
 			   prior = c(prior(normal(0,1), class = Intercept),
 			             prior(normal(0,1), class = sd),
 			             prior(normal(0,1), class = Intercept, dpar = sigma),

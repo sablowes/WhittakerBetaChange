@@ -12,10 +12,10 @@ library(tidybayes)
 library(cowplot)
 
 # anti-ts data (models fit to two time points only)
-load('~/Dropbox/1current/spatial_composition_change/results/model_fits/local-ES-norm-sigma-ts-anti-730659.Rdata')
+load('~/Dropbox/1current/spatial_composition_change/results/model_fits/local-ES-norm-sigma-ts-anti-3823550.Rdata')
 load('~/Dropbox/1current/spatial_composition_change/results/model_fits/regional-ES-jk-norm-sigma-ts-anti.Rdata')
 # time series data (models fit to data > 2 time points)
-load('~/Dropbox/1current/spatial_composition_change/results/model_fits/local-ES-norm-sigma-ts-730645.Rdata')
+load('~/Dropbox/1current/spatial_composition_change/results/model_fits/local-ES-norm-sigma-ts-3802034.Rdata')
 load('~/Dropbox/1current/spatial_composition_change/results/model_fits/regional-ES-jk-norm-sigma-ts.Rdata')
 load('~/Dropbox/1current/spatial_composition_change/data/all_meta-new.Rdata')
 
@@ -25,7 +25,7 @@ all_meta <- all_meta %>%
                                  'i_Lee', regional_level))
 
 set.seed(101)
-anti_ts_local <- gather_draws(local_ES_norm_sigma2_ts_anti, b_Intercept) %>% 
+anti_ts_local <- gather_draws(local_ES_norm_sigma_ts_anti, b_Intercept) %>% 
   # 90% credible interval of intercept
   median_qi(.width = 0.9)  
 
@@ -122,7 +122,7 @@ anti_ts_two_scale <-
   labs(y = expression(paste(gamma-scale, ' effect size [log(S) / year]')),
        x = expression(paste(alpha-scale, ' effect size [log(S) / year]')),
        # tag = 'a',
-       title = expression(paste('Models fit to data with only\ntwo time points (n = 298)'))
+       title = expression(paste('Models fit to data with only\ntwo time points (n = 296)'))
        ) +
   scale_x_continuous(breaks = c(0, 3e-3, 6e-3)) +
   scale_y_continuous(breaks = c(0, 3e-4, 6e-4)) +
@@ -142,7 +142,7 @@ ts_d <- bind_cols(gather_draws(local_ES_norm_sigma2_ts, b_Intercept, ndraws = 40
                          select(y = .value)) %>%
   mutate(d = y - x)
 
-anti_ts_d <- bind_cols(gather_draws(local_ES_norm_sigma2_ts_anti, b_Intercept, ndraws = 4000) %>%
+anti_ts_d <- bind_cols(gather_draws(local_ES_norm_sigma_ts_anti, b_Intercept, ndraws = 4000) %>%
                     ungroup() %>%
                     select(x = .value),
                   gather_draws(regional_ES_jk_norm_sigma2_ts_anti, b_Intercept, ndraws = 4000) %>%
@@ -186,7 +186,7 @@ fig3_beta_anti_ts <-
                .width = c(0.50, 0.9)) +
   geom_vline(xintercept = 0, lty = 2, colour = '#bdbdbd') +
   scale_x_continuous(breaks = seq(from = -0.01, to = 0.01, by = 0.001),
-                     labels = c('-0.01', '', '-0.008', '', '', '', '-0.004', '', '', '', '0', '', '' , '', 
+                     labels = c('', '', '-0.008', '', '', '', '-0.004', '', '', '', '0', '', '' , '', 
                                 '0.004', '', '', '', '', '', '0.01')) +
   labs(x = expression(paste(Delta, beta, ' - diversity . ', year^-1)),
        y = '') +
@@ -218,8 +218,8 @@ ggsave('~/Dropbox/1current/spatial_composition_change/figures/results/FigS4.pdf'
 ts_local_posterior_ES <- local_ES_norm_sigma2_ts$data %>% 
   add_predicted_draws(object = local_ES_norm_sigma2_ts, ndraws = 1000)
 
-anti_ts_local_posterior_ES <- local_ES_norm_sigma2_ts_anti$data %>% 
-  add_predicted_draws(object = local_ES_norm_sigma2_ts_anti, ndraws = 1000)
+anti_ts_local_posterior_ES <- local_ES_norm_sigma_ts_anti$data %>% 
+  add_predicted_draws(object = local_ES_norm_sigma_ts_anti, ndraws = 1000)
 
 ts_regional_posterior_ES <- regional_ES_jk_norm_sigma2_ts$data %>% 
   add_predicted_draws(object = regional_ES_jk_norm_sigma2_ts, ndraws = 1000)
@@ -301,9 +301,9 @@ concept_colour = c('Gain low occupancy' = '#61CDE0',
                    'Gain high occupancy' = '#D9D956')
 
 # first, a plot to create the legend
-load('~/Dropbox/1current/spatial_composition_change/results/model_fits/local-ES-norm-sigma-641269.Rdata')
+load('~/Dropbox/1current/spatial_composition_change/results/model_fits/local-ES-norm-sigma-3823365.Rdata')
 col_shape_leg_plot <- left_join(anti_ts_regional_d_summary,
-                                local_ES_norm_sigma2$data %>% 
+                                local_ES_norm_sigma$data %>% 
                                   distinct(regional_level, sample_type, logdt)) %>% 
   mutate(dt = exp(logdt)) %>% 
   left_join(all_meta) %>% 
@@ -333,7 +333,7 @@ col_shape_leg <- gg_legend(col_shape_leg_plot)
 
 anti_ts_beta_dt <-
 left_join(anti_ts_regional_d_summary,
-          local_ES_norm_sigma2_ts_anti$data %>% 
+          local_ES_norm_sigma_ts_anti$data %>% 
             distinct(regional_level, logdt)) %>% 
   mutate(dt = exp(logdt)) %>% 
   left_join(all_meta) %>% 
