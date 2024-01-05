@@ -39,8 +39,6 @@ used to fit statistical models to time series data
 fit to, and some additional files required to identify regions to be 
 included/excluded from particular sensitivity analyses
 
-**dist2line**: Function to calculate distance to 1:1 line
-
 **Fig2-1-wrangle.R**: Code to wrangle model results for Figure 2
 
 **Fig2-2-plot.R**: Code to plot Figure 2
