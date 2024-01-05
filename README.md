@@ -35,6 +35,10 @@ that were used to fit statistical models to data shown in main text
 **00-fit-time-series-models**: This folder contains scripts that were
 used to fit statistical models to time series data
 
+**01-processed-data**: This folder contains the processed data that models were
+fit to, and some additional files required to identify regions to be 
+included/excluded from particular sensitivity analyses
+
 **dist2line**: Function to calculate distance to 1:1 line
 
 **Fig2-1-wrangle.R**: Code to wrangle model results for Figure 2
